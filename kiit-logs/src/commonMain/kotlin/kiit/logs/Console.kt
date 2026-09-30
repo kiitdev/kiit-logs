@@ -18,5 +18,9 @@ import kotlinx.datetime.Instant
 /**
  * Writes a line to the platform console. JVM and iOS print "time [tag] Level : text".
  * Android writes to logcat with the level and tag, since logcat adds its own time and level.
+ *
+ * @param maxLength longest piece written in one call, in characters. Only Android uses it, because
+ *                  logcat cuts a message at about 4000 characters, so a longer text is written as
+ *                  several pieces. The JVM and iOS ignore it. 0 means no limit
  */
-internal expect fun consoleWrite(level: LogLevel, tag: String, time: Instant, text: String)
+internal expect fun consoleWrite(level: LogLevel, tag: String, time: Instant, text: String, maxLength: Int)

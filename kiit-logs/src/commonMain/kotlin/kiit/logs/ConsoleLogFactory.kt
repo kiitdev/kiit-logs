@@ -20,5 +20,10 @@ package kiit.logs
  * kiit-logs has only 1 dependency (kotlinx-datetime).
  *
  *     val logFactory = ConsoleLogFactory(LogSettings.safe(origin = "shop.example.com"))
+ *
+ * @param maxLength see [ConsoleSink]
  */
-class ConsoleLogFactory(settings: LogSettings) : SinkLogFactory(settings, ConsoleSink(), "console")
+class ConsoleLogFactory(
+    settings: LogSettings,
+    maxLength: Int = ConsoleSink.DEFAULT_MAX_LENGTH
+) : SinkLogFactory(settings, ConsoleSink(maxLength), "console")

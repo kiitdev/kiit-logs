@@ -263,7 +263,7 @@ val report = LogSettings.safe().copy(
 
 This is a small logger. Here is what it doesn't do.
 
-1. **Console only.** Android writes to logcat with the real level and tag, which is fine for a real app. The JVM and iOS use `println`, so the console logger is for development and tests there. iOS doesn't use `os_log` yet.
+1. **Console only.** Android writes to logcat with the real level and tag, which is fine for a real app. Logcat cuts a message at about 4000 bytes, so longer entries are written as several calls, on line ends where possible. The limit is 4000 characters by default, and `ConsoleLogFactory(settings, maxLength = 3000)` changes it. The JVM and iOS use `println`, so the console logger is for development and tests there. iOS doesn't use `os_log` yet.
 2. **No files, rotation, async or JSON.** That's the provider's job. No provider ships yet.
 3. **Best effort redaction.** The default matches on the field key. It doesn't look inside values, message text or an object's `toString()`. A custom `Redactor` can look at values, but not the message text.
 4. **Trace ids come from elsewhere.** If you use a tracing agent, it puts the ids in the logging context and a provider such as SLF4J passes them along. kiit-logs doesn't create them or read that context. Use `log.with(...)` to attach an id yourself.
