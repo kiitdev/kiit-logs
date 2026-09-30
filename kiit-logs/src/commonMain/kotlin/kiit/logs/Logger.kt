@@ -32,9 +32,9 @@ abstract class Logger(
 
     open val level: LogLevel get() = settings.level
 
-    fun isEnabled(level: LogLevel): Boolean = level >= this.level
+    fun isEnabled(level: LogLevel): Boolean = level != LogLevel.Off && level >= this.level
 
-    override val logger: Logger? by lazy { this }
+    override val logger: Logger get() = this
     open val raw: Any? = null
 
     /**
@@ -45,7 +45,7 @@ abstract class Logger(
      * @param ex
      */
     fun performLog(level: LogLevel, msg: String?, ex: Throwable?) {
-        if(level >= this.level) {
+        if(isEnabled(level)) {
             log(LogEntry(name, level, msg ?: "", ex))
         }
     }
@@ -57,7 +57,7 @@ abstract class Logger(
      * @param ex
      */
     fun performLog(level: LogLevel, msg:String?, callback: () -> String) {
-        if(level >= this.level) {
+        if(isEnabled(level)) {
             val label = msg ?: ""
             val output = callback()
             log(LogEntry(name, level, "$label : $output"))
@@ -74,7 +74,7 @@ abstract class Logger(
      * @param ex
      */
     fun performLog(level: LogLevel, msg: String?, fields: List<Pair<String, Any?>>, ex: Throwable? = null) {
-        if(level >= this.level) {
+        if(isEnabled(level)) {
             log(LogEntry(name, level, msg ?: "", ex, fields = settings.redaction.apply(fields)))
         }
     }

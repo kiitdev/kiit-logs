@@ -23,6 +23,9 @@ sealed class LogLevel(val name: String, val code: Int) {
     object Error : LogLevel("Error", 4)
     object Fatal : LogLevel("Fatal", 5)
 
+    /** Not a level to log at. Set as a logger's minimum level to turn logging off. */
+    object Off   : LogLevel("Off", 6)
+
 
     companion object {
         fun parse(level: String): LogLevel {
@@ -32,6 +35,7 @@ sealed class LogLevel(val name: String, val code: Int) {
                 Warn.name.lowercase()  -> Warn
                 Error.name.lowercase() -> Error
                 Fatal.name.lowercase() -> Fatal
+                Off.name.lowercase()   -> Off
                 else -> Debug
             }
         }

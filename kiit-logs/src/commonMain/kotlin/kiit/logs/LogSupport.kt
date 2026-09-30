@@ -18,7 +18,10 @@ package kiit.logs
  */
 interface LogSupport {
 
-    val logger: Logger?
+    /**
+     * The logger that receives all entries. Use [LoggerNoOp] to turn logging off explicitly.
+     */
+    val logger: Logger
 
     /** =====================================================================
      * Logging using string with optional args for formatting
@@ -87,6 +90,8 @@ interface LogSupport {
      * @param ex
      */
     fun log(level: LogLevel, ex: Throwable?, msg: String?, vararg args:Any?) {
+        // Check the level before formatting so disabled levels don't pay for it
+        if(!logger.isEnabled(level)) return
         var fmsg = msg
         val hasMsg = !msg.isNullOrEmpty()
         val hasArgs = args.isNotEmpty()
@@ -100,14 +105,14 @@ interface LogSupport {
      * Logs key/value pairs
      */
     fun log(level: LogLevel, ex:Throwable?, msg: String?, pairs:List<Pair<String,String>>) {
-        logger?.let { l -> l.performLog(level, msg, pairs, ex) }
+        logger.performLog(level, msg, pairs, ex)
     }
 
     /**
      * Logs key/value pairs. Pairs are redacted by the logger's settings.
      */
     fun log(level: LogLevel, msg: String?, pairs:List<Pair<String, Any?>>) {
-        logger?.let { l -> l.performLog(level, msg, pairs) }
+        logger.performLog(level, msg, pairs)
     }
 
     /**
@@ -117,17 +122,18 @@ interface LogSupport {
      * @param ex
      */
     fun log(level: LogLevel, msg: String?, ex: Throwable? = null) {
+        if(!logger.isEnabled(level)) return
         val hasMsg = !msg.isNullOrEmpty()
         val hasEx = ex != null
         var fmsg = msg
         if(!hasMsg && hasEx) fmsg = ex?.message
         if(hasMsg && hasEx) fmsg += "\n" + ex?.message
-        logger?.let { l -> l.performLog(level, fmsg, ex) }
+        logger.performLog(level, fmsg, ex)
     }
 
 
     fun log(level: LogLevel, msg:String?, callback: () -> String) {
-        logger?.let { l -> l.performLog(level, msg, callback) }
+        logger.performLog(level, msg, callback)
     }
 
 
@@ -145,6 +151,6 @@ interface LogSupport {
      * This varies from logging provider so this is an easier text/classic only way to do ( for now )
      */
     fun format(pairs:List<Pair<String, Any?>>):String  {
-        return LogUtils.format(pairs, logger?.settings?.redaction ?: Redaction())
+        return LogUtils.format(pairs, logger.settings.redaction)
     }
 }
