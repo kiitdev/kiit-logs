@@ -14,7 +14,22 @@
 package kiit.logs
 
 /**
- * Log methods with messages that are both eager and lazyily called via functions
+ * Logging methods. Structured logging is the default style, log an action with key/value fields:
+ *
+ *     info("place", "order_id" to id, "total" to 42)
+ *     error("place", ex, "order_id" to id)
+ *
+ * Fields are built before the level is checked. If they are expensive to build, pass a lambda so
+ * they are only built when the level is enabled:
+ *
+ *     debug("place") { listOf("total" to expensive()) }
+ *
+ * Kiit modules use Result<T, E> for errors as values, so an error usually propagates to an edge
+ * ( e.g. an API handler ) where it is logged once, with the action and its inputs/outputs.
+ *
+ * Free text is also supported, with [log]:
+ *
+ *     log(LogLevel.Error, "payment failed", ex)
  */
 interface LogSupport {
 
@@ -24,99 +39,49 @@ interface LogSupport {
     val logger: Logger
 
     /** =====================================================================
-     * Logging using string with optional args for formatting
-     *
-     * log.error("updating user {0}", user.id )
+     * Structured logging: an action with key/value fields ( redacted by the logger's settings )
      * ======================================================================
      */
-    fun debug(msg: String?, vararg args:Any?) = log(LogLevel.Debug, null, msg, *args)
-    fun info (msg: String?, vararg args:Any?) = log(LogLevel.Info , null, msg, *args)
-    fun warn (msg: String?, vararg args:Any?) = log(LogLevel.Warn , null, msg, *args)
-    fun error(msg: String?, vararg args:Any?) = log(LogLevel.Error, null, msg, *args)
-    fun fatal(msg: String?, vararg args:Any?) = log(LogLevel.Fatal, null, msg, *args)
+    fun debug(action: String, vararg fields: Pair<String, Any?>) = action(LogLevel.Debug, action, null, fields)
+    fun info (action: String, vararg fields: Pair<String, Any?>) = action(LogLevel.Info , action, null, fields)
+    fun warn (action: String, vararg fields: Pair<String, Any?>) = action(LogLevel.Warn , action, null, fields)
+    fun error(action: String, vararg fields: Pair<String, Any?>) = action(LogLevel.Error, action, null, fields)
+    fun fatal(action: String, vararg fields: Pair<String, Any?>) = action(LogLevel.Fatal, action, null, fields)
 
     /** =====================================================================
-     * Logging using exceptions + messages
-     *
-     * log.error( ex, "upating user {0}", user.id )
+     * Structured logging with an exception
      * ======================================================================
      */
-    fun debug(ex:Throwable?, msg: String?, vararg args:Any?) = log(LogLevel.Debug, ex, msg, *args)
-    fun info (ex:Throwable?, msg: String?, vararg args:Any?) = log(LogLevel.Info , ex, msg, *args)
-    fun warn (ex:Throwable?, msg: String?, vararg args:Any?) = log(LogLevel.Warn , ex, msg, *args)
-    fun error(ex:Throwable?, msg: String?, vararg args:Any?) = log(LogLevel.Error, ex, msg, *args)
-    fun fatal(ex:Throwable?, msg: String?, vararg args:Any?) = log(LogLevel.Fatal, ex, msg, *args)
+    fun debug(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = action(LogLevel.Debug, action, ex, fields)
+    fun info (action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = action(LogLevel.Info , action, ex, fields)
+    fun warn (action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = action(LogLevel.Warn , action, ex, fields)
+    fun error(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = action(LogLevel.Error, action, ex, fields)
+    fun fatal(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = action(LogLevel.Fatal, action, ex, fields)
 
     /** =====================================================================
-     * Logging using exceptions only
-     *
-     * log.error( ex )
+     * Structured logging, lazy: fields are only built if the level is enabled
      * ======================================================================
      */
-    fun debug(ex:Throwable?) = log(LogLevel.Debug, ex, null)
-    fun info (ex:Throwable?) = log(LogLevel.Info , ex, null)
-    fun warn (ex:Throwable?) = log(LogLevel.Warn , ex, null)
-    fun error(ex:Throwable?) = log(LogLevel.Error, ex, null)
-    fun fatal(ex:Throwable?) = log(LogLevel.Fatal, ex, null)
-
-    /** =====================================================================
-     * Lazy logging
-     *
-     * log.error( "updating user" ) { " some expensive message to build" }
-     * ======================================================================
-     */
-    fun debug(msg: String? = null, callback: () -> String) = log(LogLevel.Debug, msg, callback)
-    fun info (msg: String? = null, callback: () -> String) = log(LogLevel.Info , msg, callback)
-    fun warn (msg: String? = null, callback: () -> String) = log(LogLevel.Warn , msg, callback)
-    fun error(msg: String? = null, callback: () -> String) = log(LogLevel.Error, msg, callback)
-    fun fatal(msg: String? = null, callback: () -> String) = log(LogLevel.Fatal, msg, callback)
-
-    /** =====================================================================
-     * Structured logging ( key-value pairs )
-     *
-     * log.error( "updating user", listOf( "user_id" to "abc123", "promo-code" to "xyz-111" ) )
-     * ======================================================================
-     */
-    fun debug(msg: String, pairs:List<Pair<String, Any?>>) = log(LogLevel.Debug, msg, pairs)
-    fun info (msg: String, pairs:List<Pair<String, Any?>>) = log(LogLevel.Info , msg, pairs)
-    fun warn (msg: String, pairs:List<Pair<String, Any?>>) = log(LogLevel.Warn , msg, pairs)
-    fun error(msg: String, pairs:List<Pair<String, Any?>>) = log(LogLevel.Error, msg, pairs)
-    fun fatal(msg: String, pairs:List<Pair<String, Any?>>) = log(LogLevel.Fatal, msg, pairs)
+    fun debug(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) = logger.performLog(LogLevel.Debug, action, ex, fields)
+    fun info (action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) = logger.performLog(LogLevel.Info , action, ex, fields)
+    fun warn (action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) = logger.performLog(LogLevel.Warn , action, ex, fields)
+    fun error(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) = logger.performLog(LogLevel.Error, action, ex, fields)
+    fun fatal(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) = logger.performLog(LogLevel.Fatal, action, ex, fields)
 
     /**
-     * Logs an entry
-     * @param level
-     * @param msg
-     * @param ex
+     * Logs an action at any level
      */
-    fun log(level: LogLevel, ex: Throwable?, msg: String?, vararg args:Any?) {
-        // Check the level before formatting so disabled levels don't pay for it
-        if(!logger.isEnabled(level)) return
-        var fmsg = msg
-        val hasMsg = !msg.isNullOrEmpty()
-        val hasArgs = args.isNotEmpty()
-        if(hasMsg && hasArgs) {
-            fmsg = format(msg ?: "", args)
-        }
-        log(level, fmsg, ex)
+    fun action(level: LogLevel, action: String, ex: Throwable?, fields: Array<out Pair<String, Any?>>) {
+        logger.performLog(level, null, fields.asList(), ex, action)
     }
 
-    /**
-     * Logs key/value pairs
+    /** =====================================================================
+     * Free text
+     * ======================================================================
      */
-    fun log(level: LogLevel, ex:Throwable?, msg: String?, pairs:List<Pair<String,String>>) {
-        logger.performLog(level, msg, pairs, ex)
-    }
 
     /**
-     * Logs key/value pairs. Pairs are redacted by the logger's settings.
-     */
-    fun log(level: LogLevel, msg: String?, pairs:List<Pair<String, Any?>>) {
-        logger.performLog(level, msg, pairs)
-    }
-
-    /**
-     * Logs an entry
+     * Logs a message. If there is an exception, its message is appended.
      * @param level
      * @param msg
      * @param ex
@@ -131,22 +96,12 @@ interface LogSupport {
         logger.performLog(level, fmsg, ex)
     }
 
-
-    fun log(level: LogLevel, msg:String?, callback: () -> String) {
-        logger.performLog(level, msg, callback)
-    }
-
-
-
-    fun format(msg:String, args:Array<out Any?>):String = formatMessage(msg, args)
-
     /**
-     * Format key/value pairs into "structured value"
-     * e.g. a=1, b=2, c=3 etc for easier searches in logs
-     * NOTE: Logs can be configured to output JSON and/or provide structured arguments.
-     * This varies from logging provider so this is an easier text/classic only way to do ( for now )
+     * Logs a message that is only built if the level is enabled
+     *
+     * log(LogLevel.Debug, "updating user") { " some expensive message to build" }
      */
-    fun format(pairs:List<Pair<String, Any?>>):String  {
-        return LogUtils.format(pairs, logger.settings.redaction)
+    fun log(level: LogLevel, msg: String? = null, callback: () -> String) {
+        logger.performLog(level, msg, callback)
     }
 }

@@ -46,7 +46,7 @@ abstract class Logger(
      */
     fun performLog(level: LogLevel, msg: String?, ex: Throwable?) {
         if(isEnabled(level)) {
-            log(LogEntry(name, level, msg ?: "", ex))
+            log(LogEntry(name, level, msg ?: "", ex, origin = settings.origin, scope = settings.scope))
         }
     }
 
@@ -60,7 +60,7 @@ abstract class Logger(
         if(isEnabled(level)) {
             val label = msg ?: ""
             val output = callback()
-            log(LogEntry(name, level, "$label : $output"))
+            log(LogEntry(name, level, "$label : $output", origin = settings.origin, scope = settings.scope))
         }
     }
 
@@ -72,10 +72,27 @@ abstract class Logger(
      * @param msg
      * @param fields
      * @param ex
+     * @param action what was attempted, for structured logs
      */
-    fun performLog(level: LogLevel, msg: String?, fields: List<Pair<String, Any?>>, ex: Throwable? = null) {
+    fun performLog(
+        level: LogLevel,
+        msg: String?,
+        fields: List<Pair<String, Any?>>,
+        ex: Throwable? = null,
+        action: String? = null
+    ) {
         if(isEnabled(level)) {
-            log(LogEntry(name, level, msg ?: "", ex, fields = settings.redaction.apply(fields)))
+            val text = msg ?: ex?.message ?: ""
+            log(LogEntry(name, level, text, ex, action, settings.origin, settings.scope, settings.redaction.apply(fields)))
+        }
+    }
+
+    /**
+     * Logs an action. The fields are only built if the level is enabled.
+     */
+    fun performLog(level: LogLevel, action: String, ex: Throwable?, fields: () -> List<Pair<String, Any?>>) {
+        if(isEnabled(level)) {
+            performLog(level, null, fields(), ex, action)
         }
     }
 

@@ -23,7 +23,7 @@ import kotlin.reflect.KClass
  * You should be using the kiit.providers module with support for logback
  */
 class LoggerConsole(
-    settings: LogSettings = LogSettings(level = LogLevel.Debug),
+    settings: LogSettings = LogSettings(),
     name: String = "console",
     logType: KClass<*>? = null
 ) : Logger(settings, name, logType) {
@@ -43,8 +43,12 @@ class LoggerConsole(
      * @param entry: 
      */
     override fun log(entry: LogEntry) {
-        val fields = if (entry.fields.isEmpty()) "" else " : " + LogUtils.render(entry.fields)
-        println("${entry.time} [$name] ${entry.level.name} : ${entry.msg}$fields")
+        // e.g. "orders.checkout place, order_id=abc, total=42". Origin is app-wide, so it is not printed
+        val what = listOf(entry.scope, entry.action ?: "").filter { it.isNotEmpty() }.joinToString(" ")
+        val text = listOf(what, entry.msg, LogUtils.render(entry.fields))
+            .filter { it.isNotEmpty() }
+            .joinToString(", ")
+        println("${entry.time} [$name] ${entry.level.name} : $text")
         entry.ex?.let { ex -> settings.stackTraces.render(ex)?.let { println(it) } }
     }
 }
