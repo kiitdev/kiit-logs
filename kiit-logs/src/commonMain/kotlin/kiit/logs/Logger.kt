@@ -44,6 +44,12 @@ abstract class Logger(
     fun isEnabled(level: LogLevel): Boolean = level != LogLevel.Off && level >= this.level
 
     override val logger: Logger get() = this
+
+    /**
+     * Escape hatch to the wrapped library's logger, e.g. Logback's own Logger, or null if this logger
+     * doesn't wrap one. It is Any because the wrapped types are platform specific and can't be
+     * named in common code. Use [LogFactory.provider] for the wrapped library's root object.
+     */
     open val raw: Any? = null
 
     /**
@@ -114,3 +120,8 @@ abstract class Logger(
      */
     abstract fun emit(entry: LogEntry)
 }
+
+/**
+ * [Logger.raw] as T, or null if there is none or it is a different type.
+ */
+inline fun <reified T> Logger.rawAs(): T? = raw as? T

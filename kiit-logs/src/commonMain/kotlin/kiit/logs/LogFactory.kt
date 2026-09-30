@@ -29,13 +29,11 @@ interface LogFactory {
     val settings: LogSettings
 
     /**
-     * The underlying logging implementation, e.g. "console" or a Logback instance,
-     * to access the raw provider.
+     * Escape hatch to the wrapped library's root object, e.g. Logback's LoggerContext, so it can be
+     * reconfigured or shut down. It is Any because the wrapped types are platform specific and
+     * can't be named in common code. Use [Logger.raw] for the wrapped logger itself.
      */
     val provider: Any
-
-    @Suppress("UNCHECKED_CAST")
-    fun <T> providerAs(): T = provider as T
 
     fun getLogger(name: String? = ""): Logger
     fun getLogger(cls: KClass<*>): Logger
@@ -49,6 +47,11 @@ interface LogFactory {
      */
     fun setLevel(level: LogLevel)
 }
+
+/**
+ * [LogFactory.provider] as T, or null if it is a different type.
+ */
+inline fun <reified T> LogFactory.providerAs(): T? = provider as? T
 
 /**
  * Creates console loggers. Simple default, use a provider factory such as one for Logback
