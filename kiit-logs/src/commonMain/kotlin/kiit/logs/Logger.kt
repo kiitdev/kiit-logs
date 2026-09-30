@@ -6,7 +6,7 @@
  * author: Kishore Reddy
  * copyright: 2016 CodeHelix Solutions Inc.
  * license: refer to website and/or github
- * 
+ *
  *
  *  </kiit_header>
  */
@@ -39,7 +39,6 @@ class Logger private constructor(
     private val sink: LogSink,
     private val bound: List<Pair<String, Any?>>
 ) {
-
     constructor(settings: LogSettings, name: String, sink: LogSink) : this(LogState(settings, name), name, sink, emptyList())
 
     /**
@@ -78,47 +77,57 @@ class Logger private constructor(
         settings.errors.guard(LogStage.Lifecycle, null) { sink.flush() }
     }
 
-    /** =====================================================================
-     * Structured logging: an action with key/value fields ( redacted by the logger's settings )
-     * ======================================================================
-     */
+    // Structured logging: an action with key/value fields ( redacted by the logger's settings )
     fun debug(action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Debug, action, null, fields)
-    fun info (action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Info , action, null, fields)
-    fun warn (action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Warn , action, null, fields)
+
+    fun info(action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Info, action, null, fields)
+
+    fun warn(action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Warn, action, null, fields)
+
     fun error(action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Error, action, null, fields)
+
     fun fatal(action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Fatal, action, null, fields)
 
-    /** =====================================================================
-     * Structured logging with an exception
-     * ======================================================================
-     */
+    // Structured logging with an exception
     fun debug(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Debug, action, ex, fields)
-    fun info (action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Info , action, ex, fields)
-    fun warn (action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Warn , action, ex, fields)
+
+    fun info(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Info, action, ex, fields)
+
+    fun warn(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Warn, action, ex, fields)
+
     fun error(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Error, action, ex, fields)
+
     fun fatal(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Fatal, action, ex, fields)
 
-    /** =====================================================================
-     * Structured logging, lazy: fields are only built if the level is enabled
-     * ======================================================================
-     */
-    fun debug(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) = logIfEnabled(LogLevel.Debug, action, ex, fields)
-    fun info (action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) = logIfEnabled(LogLevel.Info , action, ex, fields)
-    fun warn (action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) = logIfEnabled(LogLevel.Warn , action, ex, fields)
-    fun error(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) = logIfEnabled(LogLevel.Error, action, ex, fields)
-    fun fatal(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) = logIfEnabled(LogLevel.Fatal, action, ex, fields)
+    // Structured logging, lazy: fields are only built if the level is enabled
+    fun debug(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) =
+        logIfEnabled(LogLevel.Debug, action, ex, fields)
+
+    fun info(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) =
+        logIfEnabled(LogLevel.Info, action, ex, fields)
+
+    fun warn(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) =
+        logIfEnabled(LogLevel.Warn, action, ex, fields)
+
+    fun error(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) =
+        logIfEnabled(LogLevel.Error, action, ex, fields)
+
+    fun fatal(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) =
+        logIfEnabled(LogLevel.Fatal, action, ex, fields)
 
     /**
      * Logs an action at any level
      */
-    fun logAction(level: LogLevel, action: String, ex: Throwable?, fields: Array<out Pair<String, Any?>>) {
+    fun logAction(
+        level: LogLevel,
+        action: String,
+        ex: Throwable?,
+        fields: Array<out Pair<String, Any?>>
+    ) {
         logIfEnabled(level, null, fields.asList(), ex, action)
     }
 
-    /** =====================================================================
-     * Free text
-     * ======================================================================
-     */
+    // Free text
 
     /**
      * Logs a message. If there is an exception, its message is appended.
@@ -128,11 +137,12 @@ class Logger private constructor(
      */
     fun log(level: LogLevel, msg: String?, ex: Throwable? = null) {
         send(level) {
-            val text = when {
-                ex == null -> msg
-                msg.isNullOrEmpty() -> ex.message
-                else -> ex.message?.let { "$msg\n$it" } ?: msg
-            }
+            val text =
+                when {
+                    ex == null -> msg
+                    msg.isNullOrEmpty() -> ex.message
+                    else -> ex.message?.let { "$msg\n$it" } ?: msg
+                }
             build(level, text ?: "", ex, null, emptyList())
         }
     }
@@ -167,7 +177,12 @@ class Logger private constructor(
     /**
      * Logs an action. The fields are only built if the level is enabled.
      */
-    private fun logIfEnabled(level: LogLevel, action: String, ex: Throwable?, fields: () -> List<Pair<String, Any?>>) {
+    private fun logIfEnabled(
+        level: LogLevel,
+        action: String,
+        ex: Throwable?,
+        fields: () -> List<Pair<String, Any?>>
+    ) {
         send(level) { build(level, ex?.message ?: "", ex, action, fields()) }
     }
 
@@ -213,7 +228,7 @@ class Logger private constructor(
             scope = s.scope,
             fields = s.redaction.redact(bound + fields),
             time = s.clock.now(),
-            trace = ex?.let { s.stackTraces.render(it, s.maxTraceLines) }
+            trace = ex?.let { s.stackTraces.render(it, s.maxTraceLines) },
         )
     }
 

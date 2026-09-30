@@ -8,12 +8,12 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ErrorPolicyTests {
-
     private class Recorded(val stage: LogStage, val error: Exception, val entry: LogEntry?)
 
-    private fun handling(records: MutableList<Recorded>) = ErrorPolicy.Handle { stage, error, entry ->
-        records.add(Recorded(stage, error, entry))
-    }
+    private fun handling(records: MutableList<Recorded>) =
+        ErrorPolicy.Handle { stage, error, entry ->
+            records.add(Recorded(stage, error, entry))
+        }
 
     private fun settings(policy: ErrorPolicy) = testSettings(LogLevel.Info).copy(errors = policy)
 

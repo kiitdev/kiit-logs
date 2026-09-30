@@ -6,7 +6,7 @@
  * author: Kishore Reddy
  * copyright: 2016 CodeHelix Solutions Inc.
  * license: refer to website and/or github
- * 
+ *
  *
  *  </kiit_header>
  */
@@ -20,7 +20,6 @@ import kotlin.concurrent.Volatile
  * with [Logger.with] share one, so a change applies to all of them.
  */
 internal class LogState(settings: LogSettings, private val name: String) {
-
     @Volatile
     var settings: LogSettings = settings
         set(value) {

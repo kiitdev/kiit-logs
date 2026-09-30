@@ -6,7 +6,7 @@
  * author: Kishore Reddy
  * copyright: 2016 CodeHelix Solutions Inc.
  * license: refer to website and/or github
- * 
+ *
  *
  *  </kiit_header>
  */
@@ -37,7 +37,6 @@ enum class LogStage {
  * thread, so keep it quick. If it throws, that is ignored.
  */
 fun interface LogErrorHandler {
-
     /**
      * @param stage where it went wrong
      * @param error what was thrown
@@ -57,7 +56,6 @@ fun interface LogErrorHandler {
 }
 
 private class PrintingHandler(private val limit: Int) : LogErrorHandler {
-
     // Not exact under threads, at worst one extra line is printed
     @Volatile
     private var printed = 0
@@ -76,7 +74,6 @@ private class PrintingHandler(private val limit: Int) : LogErrorHandler {
  * bug, or a lazy message that fails. Set with [LogSettings.errors].
  */
 sealed class ErrorPolicy {
-
     /** Throw it to the caller of the log method. Useful in tests and development. */
     object Propagate : ErrorPolicy()
 
@@ -90,11 +87,12 @@ sealed class ErrorPolicy {
 internal fun ErrorPolicy.report(stage: LogStage, error: Exception, entry: LogEntry?) {
     when (this) {
         ErrorPolicy.Propagate -> throw error
-        is ErrorPolicy.Handle -> try {
-            handler.onError(stage, error, entry)
-        } catch (ignored: Exception) {
-            // Nothing can report a failure of the reporter
-        }
+        is ErrorPolicy.Handle ->
+            try {
+                handler.onError(stage, error, entry)
+            } catch (ignored: Exception) {
+                // Nothing can report a failure of the reporter
+            }
     }
 }
 

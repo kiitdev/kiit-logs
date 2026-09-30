@@ -5,7 +5,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class ChunksTests {
-
     private fun pieces(text: String, max: Int) = chunkText(text, max).map { it.replace("\n", "|") }
 
     @Test

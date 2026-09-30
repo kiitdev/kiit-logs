@@ -6,8 +6,8 @@
  * author: Kishore Reddy
  * copyright: 2016 CodeHelix Solutions Inc.
  * license: refer to website and/or github
- * 
- * 
+ *
+ *
  *  </kiit_header>
  */
 
@@ -19,7 +19,6 @@ import kotlin.reflect.KClass
  * Creates and caches loggers, all with the same [settings].
  */
 interface LogFactory {
-
     /**
      * Settings given to every logger this creates. Required, use [LogSettings.safe] for safe defaults.
      */
@@ -33,6 +32,7 @@ interface LogFactory {
     val provider: Any
 
     fun getLogger(name: String? = ""): Logger
+
     fun getLogger(cls: KClass<*>): Logger
 
     /**

@@ -7,7 +7,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SinkTests {
-
     private fun entry(level: LogLevel = LogLevel.Info, action: String = "x") =
         LogEntry(name = "L", level = level, action = action, time = fixedTime)
 
@@ -74,14 +73,23 @@ class SinkTests {
 
     @Test
     fun a_filtered_sink_forwards_flush_close_and_raw() {
-        val inner = object : LogSink {
-            var flushed = 0
-            var closed = 0
-            override fun emit(entry: LogEntry) {}
-            override fun flush() { flushed++ }
-            override fun close() { closed++ }
-            override fun rawFor(name: String): Any? = "raw:$name"
-        }
+        val inner =
+            object : LogSink {
+                var flushed = 0
+                var closed = 0
+
+                override fun emit(entry: LogEntry) {}
+
+                override fun flush() {
+                    flushed++
+                }
+
+                override fun close() {
+                    closed++
+                }
+
+                override fun rawFor(name: String): Any? = "raw:$name"
+            }
         val filtered = inner.minLevel(LogLevel.Error)
         filtered.flush()
         filtered.close()
@@ -92,17 +100,22 @@ class SinkTests {
 
     @Test
     fun a_composite_gives_the_first_raw_that_exists() {
-        val first = object : LogSink {
-            override fun emit(entry: LogEntry) {}
-        }
-        val second = object : LogSink {
-            override fun emit(entry: LogEntry) {}
-            override fun rawFor(name: String): Any? = "second:$name"
-        }
-        val third = object : LogSink {
-            override fun emit(entry: LogEntry) {}
-            override fun rawFor(name: String): Any? = "third:$name"
-        }
+        val first =
+            object : LogSink {
+                override fun emit(entry: LogEntry) {}
+            }
+        val second =
+            object : LogSink {
+                override fun emit(entry: LogEntry) {}
+
+                override fun rawFor(name: String): Any? = "second:$name"
+            }
+        val third =
+            object : LogSink {
+                override fun emit(entry: LogEntry) {}
+
+                override fun rawFor(name: String): Any? = "third:$name"
+            }
         assertEquals("second:A", CompositeSink(first, second, third).rawFor("A"))
         assertNull(CompositeSink(first).rawFor("A"))
     }

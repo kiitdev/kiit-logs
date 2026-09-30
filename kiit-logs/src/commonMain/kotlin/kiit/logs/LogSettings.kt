@@ -6,7 +6,7 @@
  * author: Kishore Reddy
  * copyright: 2016 CodeHelix Solutions Inc.
  * license: refer to website and/or github
- * 
+ *
  *
  *  </kiit_header>
  */
@@ -69,12 +69,13 @@ data class LogSettings(
          * Safe defaults: only [LogLevel.Error] and above, no stack traces, and default redaction
          * ( sensitive keys are masked ).
          */
-        fun safe(origin: String = "", scope: String = ""): LogSettings = LogSettings(
-            level = LogLevel.Error,
-            stackTraces = StackTraces.Off,
-            redaction = Redaction(),
-            origin = origin,
-            scope = scope
-        )
+        fun safe(origin: String = "", scope: String = ""): LogSettings =
+            LogSettings(
+                level = LogLevel.Error,
+                stackTraces = StackTraces.Off,
+                redaction = Redaction(),
+                origin = origin,
+                scope = scope,
+            )
     }
 }

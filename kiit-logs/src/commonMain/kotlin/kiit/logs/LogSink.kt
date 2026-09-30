@@ -6,7 +6,7 @@
  * author: Kishore Reddy
  * copyright: 2016 CodeHelix Solutions Inc.
  * license: refer to website and/or github
- * 
+ *
  *
  *  </kiit_header>
  */
@@ -21,7 +21,6 @@ package kiit.logs
  * Sinks are shared by many loggers, so closing one is the job of the [LogFactory] that owns it.
  */
 interface LogSink {
-
     /**
      * Delivers one entry. The fields are already redacted, and [LogEntry.trace] already follows
      * the stack trace setting. [LogEntry.ex] is still there for a sink that wants the Throwable.

@@ -7,7 +7,6 @@ import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class EntryAndSettingsTests {
-
     private fun entry(
         msg: String = "",
         action: String? = null,
@@ -17,7 +16,10 @@ class EntryAndSettingsTests {
 
     @Test
     fun text_is_built_from_the_parts_that_are_set() {
-        assertEquals("orders place, order_id=abc, total=42", entry(action = "place", scope = "orders", fields = fields("order_id" to "abc", "total" to 42)).text)
+        assertEquals(
+            "orders place, order_id=abc, total=42",
+            entry(action = "place", scope = "orders", fields = fields("order_id" to "abc", "total" to 42)).text,
+        )
         assertEquals("place, order_id=abc", entry(action = "place", fields = fields("order_id" to "abc")).text)
         assertEquals("payment slow", entry(msg = "payment slow").text)
         assertEquals("place, declined, order_id=abc", entry(msg = "declined", action = "place", fields = fields("order_id" to "abc")).text)

@@ -6,8 +6,8 @@
  * author: Kishore Reddy
  * copyright: 2016 CodeHelix Solutions Inc.
  * license: refer to website and/or github
- * 
- * 
+ *
+ *
  *  </kiit_header>
  */
 
@@ -32,7 +32,6 @@ open class SinkLogFactory(
     private val sink: LogSink,
     override val provider: Any = sink
 ) : LogFactory {
-
     @Volatile
     final override var settings: LogSettings = settings
         private set

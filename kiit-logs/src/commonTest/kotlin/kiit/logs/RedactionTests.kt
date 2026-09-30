@@ -4,7 +4,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class RedactionTests {
-
     private fun masked(redaction: Redaction, vararg keys: String): List<String> =
         redaction.redact(keys.map { it to "value" }).filter { it.second == redaction.replacement }.map { it.first }
 
@@ -74,17 +73,18 @@ class RedactionTests {
         log.info("signup", "contact" to "a@b.com", "email" to "kept?", "plan" to "pro")
         assertEquals(
             fields("contact" to "<email>", "email" to "kept?", "plan" to "pro"),
-            sink.entries.single().fields
+            sink.entries.single().fields,
         )
     }
 
     @Test
     fun a_redactor_sees_bound_and_call_fields_together() {
         var seen: List<String> = emptyList()
-        val redactor = Redactor { fields ->
-            seen = fields.map { it.first }
-            fields
-        }
+        val redactor =
+            Redactor { fields ->
+                seen = fields.map { it.first }
+                fields
+            }
         Logger(testSettings().copy(redaction = redactor), "L", MemorySink()).with("a" to 1).info("x", "b" to 2)
         assertEquals(listOf("a", "b"), seen)
     }

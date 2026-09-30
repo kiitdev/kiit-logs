@@ -7,7 +7,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class StackTracesTests {
-
     private fun chain(depth: Int): Exception {
         var ex: Exception = IllegalStateException("cause-$depth")
         for (i in depth - 1 downTo 1) ex = RuntimeException("cause-$i", ex)
@@ -29,7 +28,7 @@ class StackTracesTests {
         val ex = RuntimeException("charge failed", IllegalArgumentException("bad card", IllegalStateException("closed")))
         assertEquals(
             "RuntimeException: charge failed\nCaused by: IllegalArgumentException: bad card\nCaused by: IllegalStateException: closed",
-            StackTraces.Summary.render(ex)
+            StackTraces.Summary.render(ex),
         )
     }
 
@@ -62,6 +61,7 @@ class StackTracesTests {
     @Test
     fun the_entry_trace_follows_the_setting_and_the_exception_is_kept() {
         val ex = IllegalStateException("boom")
+
         fun traceFor(mode: StackTraces): String? {
             val sink = MemorySink()
             Logger(testSettings().copy(stackTraces = mode), "L", sink).error("charge", ex)

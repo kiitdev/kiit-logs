@@ -6,7 +6,7 @@
  * author: Kishore Reddy
  * copyright: 2016 CodeHelix Solutions Inc.
  * license: refer to website and/or github
- * 
+ *
  *
  *  </kiit_header>
  */
@@ -66,16 +66,18 @@ data class Redaction(
         }
     }
 
-    override fun redact(fields: List<Pair<String, Any?>>): List<Pair<String, Any?>> = when (action) {
-        RedactAction.Mask -> fields.map { (k, v) -> if (isSensitive(k)) k to replacement else k to v }
-        RedactAction.Drop -> fields.filterNot { isSensitive(it.first) }
-    }
+    override fun redact(fields: List<Pair<String, Any?>>): List<Pair<String, Any?>> =
+        when (action) {
+            RedactAction.Mask -> fields.map { (k, v) -> if (isSensitive(k)) k to replacement else k to v }
+            RedactAction.Drop -> fields.filterNot { isSensitive(it.first) }
+        }
 
     companion object {
-        val defaults: Set<String> = setOf(
-            "username", "email", "phone", "password", "pswd", "firstname", "lastname",
-            "token", "secret", "apikey", "authorization", "cookie", "ssn"
-        )
+        val defaults: Set<String> =
+            setOf(
+                "username", "email", "phone", "password", "pswd", "firstname", "lastname",
+                "token", "secret", "apikey", "authorization", "cookie", "ssn",
+            )
 
         private fun normalize(key: String): String = key.lowercase().filter { it.isLetterOrDigit() }
     }

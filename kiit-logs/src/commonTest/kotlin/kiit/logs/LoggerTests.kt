@@ -7,7 +7,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class LoggerTests {
-
     @Test
     fun structured_entry_has_action_fields_origin_scope_and_time() {
         val sink = MemorySink()
@@ -75,7 +74,7 @@ class LoggerTests {
         log.fatal("f")
         assertEquals(
             listOf(LogLevel.Trace, LogLevel.Debug, LogLevel.Info, LogLevel.Warn, LogLevel.Error, LogLevel.Fatal),
-            sink.entries.map { it.level }
+            sink.entries.map { it.level },
         )
     }
 
@@ -121,11 +120,17 @@ class LoggerTests {
         val sink = MemorySink()
         var calls = 0
         val log = Logger(testSettings(LogLevel.Info), "L", sink)
-        log.log(LogLevel.Debug, "label") { calls++; "built" }
+        log.log(LogLevel.Debug, "label") {
+            calls++
+            "built"
+        }
         assertEquals(0, calls)
         assertTrue(sink.entries.isEmpty())
 
-        log.log(LogLevel.Info, "label") { calls++; "built" }
+        log.log(LogLevel.Info, "label") {
+            calls++
+            "built"
+        }
         assertEquals(1, calls)
         assertEquals("label : built", sink.entries.single().msg)
     }
@@ -135,11 +140,17 @@ class LoggerTests {
         val sink = MemorySink()
         var calls = 0
         val log = Logger(testSettings(LogLevel.Info), "L", sink)
-        log.debug("place") { calls++; fields("total" to 42) }
+        log.debug("place") {
+            calls++
+            fields("total" to 42)
+        }
         assertEquals(0, calls)
         assertTrue(sink.entries.isEmpty())
 
-        log.info("place") { calls++; fields("total" to 42) }
+        log.info("place") {
+            calls++
+            fields("total" to 42)
+        }
         assertEquals(1, calls)
         val entry = sink.entries.single()
         assertEquals("place", entry.action)
@@ -184,7 +195,7 @@ class LoggerTests {
 
         assertEquals(
             fields("trace_id" to "t-1", "password" to "***", "order_id" to "abc"),
-            sink.entries.single().fields
+            sink.entries.single().fields,
         )
     }
 
@@ -214,10 +225,12 @@ class LoggerTests {
 
     @Test
     fun a_bound_logger_keeps_the_name_and_the_raw_of_its_parent() {
-        val sink = object : LogSink {
-            override fun emit(entry: LogEntry) {}
-            override fun rawFor(name: String): Any? = "raw:$name"
-        }
+        val sink =
+            object : LogSink {
+                override fun emit(entry: LogEntry) {}
+
+                override fun rawFor(name: String): Any? = "raw:$name"
+            }
         val bound = Logger(testSettings(), "com.shop.A", sink).with("k" to 1)
         assertEquals("com.shop.A", bound.name)
         assertEquals("raw:com.shop.A", bound.raw)
@@ -226,9 +239,10 @@ class LoggerTests {
     @Test
     fun the_filter_can_drop_entries_and_sees_bound_fields() {
         val sink = MemorySink()
-        val settings = testSettings().copy(
-            filter = { entry -> entry.action != "noisy" && entry.fields.none { it.first == "muted" } }
-        )
+        val settings =
+            testSettings().copy(
+                filter = { entry -> entry.action != "noisy" && entry.fields.none { it.first == "muted" } },
+            )
         val log = Logger(settings, "L", sink)
         log.info("noisy")
         log.info("kept")
@@ -247,10 +261,12 @@ class LoggerTests {
 
     @Test
     fun raw_is_asked_of_the_sink_with_the_logger_name() {
-        val sink = object : LogSink {
-            override fun emit(entry: LogEntry) {}
-            override fun rawFor(name: String): Any? = "raw:$name"
-        }
+        val sink =
+            object : LogSink {
+                override fun emit(entry: LogEntry) {}
+
+                override fun rawFor(name: String): Any? = "raw:$name"
+            }
         val a = Logger(testSettings(), "A", sink)
         val b = Logger(testSettings(), "B", sink)
         assertEquals("raw:A", a.raw)

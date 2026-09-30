@@ -6,8 +6,8 @@
  * author: Kishore Reddy
  * copyright: 2016 CodeHelix Solutions Inc.
  * license: refer to website and/or github
- * 
- * 
+ *
+ *
  *  </kiit_header>
  */
 
@@ -21,7 +21,6 @@ package kiit.logs
  *     val sink = CompositeSink(ConsoleSink(), remoteSink.minLevel(LogLevel.Error))
  */
 class CompositeSink(private val sinks: List<LogSink>) : LogSink {
-
     constructor(vararg sinks: LogSink) : this(sinks.asList())
 
     override fun emit(entry: LogEntry) = each { it.emit(entry) }

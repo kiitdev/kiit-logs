@@ -31,9 +31,10 @@ class FailingSink(private val message: String = "sink down") : LogSink {
 
 val fixedTime: Instant = Instant.parse("2026-01-01T00:00:00Z")
 
-val fixedClock: Clock = object : Clock {
-    override fun now(): Instant = fixedTime
-}
+val fixedClock: Clock =
+    object : Clock {
+        override fun now(): Instant = fixedTime
+    }
 
 /**
  * Settings for tests: everything is logged from [level] up, time is fixed, and an error in logging is

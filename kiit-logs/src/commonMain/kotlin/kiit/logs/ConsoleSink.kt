@@ -6,7 +6,7 @@
  * author: Kishore Reddy
  * copyright: 2016 CodeHelix Solutions Inc.
  * license: refer to website and/or github
- * 
+ *
  *
  *  </kiit_header>
  */
@@ -23,7 +23,6 @@ package kiit.logs
  *                  platforms ignore it. 0 means no limit
  */
 class ConsoleSink(private val maxLength: Int = DEFAULT_MAX_LENGTH) : LogSink {
-
     override fun emit(entry: LogEntry) {
         // The trace is part of the same write, so multi-line output stays together
         val text = if (entry.trace == null) entry.text else "${entry.text}\n${entry.trace}"

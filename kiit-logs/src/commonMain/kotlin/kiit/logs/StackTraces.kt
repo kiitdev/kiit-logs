@@ -6,7 +6,7 @@
  * author: Kishore Reddy
  * copyright: 2016 CodeHelix Solutions Inc.
  * license: refer to website and/or github
- * 
+ *
  *
  *  </kiit_header>
  */
@@ -33,20 +33,22 @@ enum class StackTraces {
      * @param ex the exception to render
      * @param maxLines cap for [Full], the rest is replaced by a line saying how many were cut
      */
-    fun render(ex: Throwable, maxLines: Int = DEFAULT_MAX_LINES): String? = when (this) {
-        Off -> null
-        Summary -> generateSequence(ex) { it.cause }
-            .take(MAX_CAUSES)
-            .joinToString("\nCaused by: ") { "${it::class.simpleName}: ${it.message}" }
-        Full -> {
-            val lines = ex.stackTraceToString().lines()
-            if (lines.size <= maxLines) {
-                lines.joinToString("\n")
-            } else {
-                lines.take(maxLines).joinToString("\n") + "\n... ${lines.size - maxLines} more lines"
+    fun render(ex: Throwable, maxLines: Int = DEFAULT_MAX_LINES): String? =
+        when (this) {
+            Off -> null
+            Summary ->
+                generateSequence(ex) { it.cause }
+                    .take(MAX_CAUSES)
+                    .joinToString("\nCaused by: ") { "${it::class.simpleName}: ${it.message}" }
+            Full -> {
+                val lines = ex.stackTraceToString().lines()
+                if (lines.size <= maxLines) {
+                    lines.joinToString("\n")
+                } else {
+                    lines.take(maxLines).joinToString("\n") + "\n... ${lines.size - maxLines} more lines"
+                }
             }
         }
-    }
 
     companion object {
         const val DEFAULT_MAX_LINES = 50

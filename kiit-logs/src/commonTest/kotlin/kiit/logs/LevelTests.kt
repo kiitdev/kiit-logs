@@ -7,10 +7,10 @@ import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class LevelTests {
-
-    private val byName = LogSettings.safe().copy(
-        levels = mapOf("com.shop.orders" to LogLevel.Debug, "com.shop.orders.audit" to LogLevel.Warn)
-    )
+    private val byName =
+        LogSettings.safe().copy(
+            levels = mapOf("com.shop.orders" to LogLevel.Debug, "com.shop.orders.audit" to LogLevel.Warn),
+        )
 
     @Test
     fun levels_are_ordered() {

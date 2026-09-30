@@ -6,9 +6,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ConcurrencyTests {
-
     private class SafeSink : LogSink {
         val entries: MutableList<LogEntry> = Collections.synchronizedList(mutableListOf())
+
         override fun emit(entry: LogEntry) {
             entries.add(entry)
         }
@@ -16,15 +16,16 @@ class ConcurrencyTests {
 
     private fun runThreads(count: Int, body: (Int) -> Unit) {
         val failures = Collections.synchronizedList(mutableListOf<Throwable>())
-        val threads = (0 until count).map { n ->
-            Thread {
-                try {
-                    body(n)
-                } catch (t: Throwable) {
-                    failures.add(t)
+        val threads =
+            (0 until count).map { n ->
+                Thread {
+                    try {
+                        body(n)
+                    } catch (t: Throwable) {
+                        failures.add(t)
+                    }
                 }
             }
-        }
         threads.forEach { it.start() }
         threads.forEach { it.join() }
         assertEquals(emptyList<Throwable>(), failures.toList())
