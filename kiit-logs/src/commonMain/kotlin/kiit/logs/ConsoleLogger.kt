@@ -43,13 +43,8 @@ class ConsoleLogger(
      * @param entry: 
      */
     override fun emit(entry: LogEntry) {
-        // e.g. "orders.checkout place, order_id=abc, total=42". Origin is app-wide, so it is not printed
-        val what = listOf(entry.scope, entry.action ?: "").filter { it.isNotEmpty() }.joinToString(" ")
-        val text = listOf(what, entry.msg, LogUtils.render(entry.fields))
-            .filter { it.isNotEmpty() }
-            .joinToString(", ")
         // The exception is part of the same write, so multi-line output stays together
         val trace = entry.ex?.let { settings.stackTraces.render(it) }
-        consoleWrite(entry.level, name, entry.time, if (trace == null) text else "$text\n$trace")
+        consoleWrite(entry.level, name, entry.time, if (trace == null) entry.text else "${entry.text}\n$trace")
     }
 }
