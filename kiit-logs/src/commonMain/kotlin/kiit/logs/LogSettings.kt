@@ -20,9 +20,11 @@ package kiit.logs
  * @param level minimum level that is logged
  * @param stackTraces how exceptions are rendered by loggers that print them, e.g. the console
  * @param redaction which key/value fields are masked or dropped before an entry is created
- * @param origin which system emits the logs, set once for the app, e.g. "shop.example.com".
- *               Same meaning as origin in kiit-codes. Empty means unset
- * @param scope namespace within the origin, e.g. "orders.checkout". Empty means unset
+ * @param origin who owns the system that emits the logs, set once for the app, e.g. "shop.example.com".
+ *               A domain or any other stable id. Same convention as origin in kiit-codes and
+ *               kiit-service-id. Empty means unset
+ * @param scope free-form label for where in the origin this is, e.g. "orders.checkout". Dots express
+ *              hierarchy. Same convention as scope in kiit-codes and kiit-service-id. Empty means unset
  */
 data class LogSettings(
     val level: LogLevel = LogLevel.Error,
