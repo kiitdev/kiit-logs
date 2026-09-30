@@ -227,6 +227,22 @@ logs.close()     // flush and release it, all loggers of the factory share it
 
 The level check happens before `emit`, so a sink that wraps another library should leave that library's own level wide open. Otherwise it may drop entries that already passed. `Logger.raw` and `LogFactory.provider` give you the wrapped objects if you need them.
 
+**Use your sink through a factory**, to keep caching by name and `setLevel`:
+
+```kotlin
+val logs = SinkLogFactory(LogSettings.safe(origin = "shop.example.com"), ListSink())
+val log = logs.getLogger("OrderService")
+```
+
+**Send to more than one place.** `CompositeSink` gives each entry to every sink. A sink that throws doesn't stop the others, and logging never throws into your code:
+
+```kotlin
+val sink = CompositeSink(ConsoleSink(), crashReporter.minLevel(LogLevel.Error))
+val logs = SinkLogFactory(LogSettings.safe().copy(level = LogLevel.Debug), sink)
+```
+
+`minLevel` and `filtered { }` narrow one sink. The logger's own level still decides what is logged at all, so here the console gets everything from `Debug` up and the crash reporter only gets errors.
+
 **Test with a fixed time** by replacing `LogSettings.clock` with your own `kotlinx.datetime.Clock`.
 
 ## Limits
