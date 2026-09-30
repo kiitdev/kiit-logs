@@ -95,7 +95,7 @@ abstract class Logger(
         if(isEnabled(level)) {
             val s = settings
             val text = msg ?: ex?.message ?: ""
-            emit(LogEntry(name, level, text, ex, action, s.origin, s.scope, s.redaction.apply(fields), s.clock.now()))
+            emit(LogEntry(name, level, text, ex, action, s.origin, s.scope, s.redaction.redact(fields), s.clock.now()))
         }
     }
 

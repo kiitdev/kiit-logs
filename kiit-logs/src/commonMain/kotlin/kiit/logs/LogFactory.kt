@@ -77,12 +77,12 @@ class ConsoleLogFactory(settings: LogSettings) : LogFactory {
 
     override fun getLogger(cls: KClass<*>): Logger {
         val key = cls.qualifiedName ?: cls.simpleName ?: "console"
-        return cached(key) { LoggerConsole(settings, name = cls.simpleName ?: "console", logType = cls) }
+        return cached(key) { ConsoleLogger(settings, name = cls.simpleName ?: "console", logType = cls) }
     }
 
     override fun getLogger(name: String?): Logger {
         val key = name ?: "console"
-        return cached(key) { LoggerConsole(settings, name = key) }
+        return cached(key) { ConsoleLogger(settings, name = key) }
     }
 
     override fun setLevel(level: LogLevel) {

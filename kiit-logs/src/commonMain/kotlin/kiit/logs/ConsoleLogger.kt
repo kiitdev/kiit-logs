@@ -22,7 +22,7 @@ import kotlin.reflect.KClass
  * This is just used mostly for defaults.
  * You should be using the kiit.providers module with support for logback
  */
-class LoggerConsole(
+class ConsoleLogger(
     settings: LogSettings,
     name: String = "console",
     logType: KClass<*>? = null

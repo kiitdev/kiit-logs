@@ -34,7 +34,7 @@ package kiit.logs
 interface LogSupport {
 
     /**
-     * The logger that receives all entries. Use [LoggerNone] to turn logging off explicitly.
+     * The logger that receives all entries. Use [NoLogger] to turn logging off explicitly.
      */
     val logger: Logger
 
@@ -42,21 +42,21 @@ interface LogSupport {
      * Structured logging: an action with key/value fields ( redacted by the logger's settings )
      * ======================================================================
      */
-    fun debug(action: String, vararg fields: Pair<String, Any?>) = action(LogLevel.Debug, action, null, fields)
-    fun info (action: String, vararg fields: Pair<String, Any?>) = action(LogLevel.Info , action, null, fields)
-    fun warn (action: String, vararg fields: Pair<String, Any?>) = action(LogLevel.Warn , action, null, fields)
-    fun error(action: String, vararg fields: Pair<String, Any?>) = action(LogLevel.Error, action, null, fields)
-    fun fatal(action: String, vararg fields: Pair<String, Any?>) = action(LogLevel.Fatal, action, null, fields)
+    fun debug(action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Debug, action, null, fields)
+    fun info (action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Info , action, null, fields)
+    fun warn (action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Warn , action, null, fields)
+    fun error(action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Error, action, null, fields)
+    fun fatal(action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Fatal, action, null, fields)
 
     /** =====================================================================
      * Structured logging with an exception
      * ======================================================================
      */
-    fun debug(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = action(LogLevel.Debug, action, ex, fields)
-    fun info (action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = action(LogLevel.Info , action, ex, fields)
-    fun warn (action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = action(LogLevel.Warn , action, ex, fields)
-    fun error(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = action(LogLevel.Error, action, ex, fields)
-    fun fatal(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = action(LogLevel.Fatal, action, ex, fields)
+    fun debug(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Debug, action, ex, fields)
+    fun info (action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Info , action, ex, fields)
+    fun warn (action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Warn , action, ex, fields)
+    fun error(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Error, action, ex, fields)
+    fun fatal(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Fatal, action, ex, fields)
 
     /** =====================================================================
      * Structured logging, lazy: fields are only built if the level is enabled
@@ -71,7 +71,7 @@ interface LogSupport {
     /**
      * Logs an action at any level
      */
-    fun action(level: LogLevel, action: String, ex: Throwable?, fields: Array<out Pair<String, Any?>>) {
+    fun logAction(level: LogLevel, action: String, ex: Throwable?, fields: Array<out Pair<String, Any?>>) {
         logger.logIfEnabled(level, null, fields.asList(), ex, action)
     }
 

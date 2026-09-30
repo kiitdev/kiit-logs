@@ -30,7 +30,7 @@ enum class KeyMatch {
 
 /** What happens to a sensitive field. */
 enum class RedactAction {
-    /** Keep the key, replace the value with [Redaction.mask]. */
+    /** Keep the key, replace the value with [Redaction.replacement]. */
     Mask,
 
     /** Remove the field. */
@@ -45,13 +45,13 @@ enum class RedactAction {
  * @param keys sensitive words, e.g. Redaction.defaults + "ssn"
  * @param match how a field key is compared to [keys]
  * @param action mask the value or drop the field
- * @param mask replacement value used by [RedactAction.Mask]
+ * @param replacement value used by [RedactAction.Mask]
  */
 data class Redaction(
     val keys: Set<String> = defaults,
     val match: KeyMatch = KeyMatch.Contains,
     val action: RedactAction = RedactAction.Mask,
-    val mask: String = "***"
+    val replacement: String = "***"
 ) {
     private val normalized: List<String> = keys.map { normalize(it) }
 
@@ -66,8 +66,8 @@ data class Redaction(
         }
     }
 
-    fun apply(fields: List<Pair<String, Any?>>): List<Pair<String, Any?>> = when (action) {
-        RedactAction.Mask -> fields.map { (k, v) -> if (isSensitive(k)) k to mask else k to v }
+    fun redact(fields: List<Pair<String, Any?>>): List<Pair<String, Any?>> = when (action) {
+        RedactAction.Mask -> fields.map { (k, v) -> if (isSensitive(k)) k to replacement else k to v }
         RedactAction.Drop -> fields.filterNot { isSensitive(it.first) }
     }
 

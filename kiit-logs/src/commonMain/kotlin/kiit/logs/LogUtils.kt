@@ -8,7 +8,7 @@ object LogUtils {
      * This varies from logging provider so this is an easier text/classic only way to do ( for now )
      */
     fun format(pairs:List<Pair<String, Any?>>, redaction:Redaction = Redaction()):String =
-        render(redaction.apply(pairs))
+        render(redaction.redact(pairs))
 
     /**
      * Renders already redacted key/value pairs as a=1, b=2
