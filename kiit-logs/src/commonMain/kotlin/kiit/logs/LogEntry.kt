@@ -22,6 +22,8 @@ import kotlinx.datetime.Instant
  * @param fields key/value pairs, already redacted
  * @param msg free text, used when there is no action or as detail for one
  * @param time when the entry was created, from [LogSettings.clock]
+ * @param trace the exception rendered per [LogSettings.stackTraces], null when there is none or it is Off.
+ *              A sink that prints exceptions should use this, so the setting applies to it too
  */
 data class LogEntry(
     val name: String = "",
@@ -32,7 +34,8 @@ data class LogEntry(
     val origin: String = "",
     val scope: String = "",
     val fields: List<Pair<String, Any?>> = emptyList(),
-    val time: Instant = Clock.System.now()
+    val time: Instant = Clock.System.now(),
+    val trace: String? = null
 ) {
     /**
      * Display form built from the parts that are set: "scope action, msg, k=v, k=v", e.g.
@@ -43,7 +46,7 @@ data class LogEntry(
     val text: String
         get() {
             val what = listOf(scope, action ?: "").filter { it.isNotEmpty() }.joinToString(" ")
-            return listOf(what, msg, LogUtils.render(fields))
+            return listOf(what, msg, fields.joinToString(", ") { "${it.first}=${it.second}" })
                 .filter { it.isNotEmpty() }
                 .joinToString(", ")
         }

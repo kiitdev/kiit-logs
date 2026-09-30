@@ -13,9 +13,6 @@
 
 package kiit.logs
 
-import kotlin.concurrent.Volatile
-import kotlin.reflect.KClass
-
 /**
  * A logger. Structured logging is the default style, log an action with key/value fields:
  *
@@ -34,59 +31,50 @@ import kotlin.reflect.KClass
  *
  *     log(LogLevel.Error, "payment failed", ex)
  *
- * A provider extends Logger and implements [emit].
+ * A logger sends every entry that passes the level check and the filter to its [LogSink].
  */
-abstract class Logger(
-    settings: LogSettings,
-    open val name: String = "",
-    open val logType: KClass<*>? = null
+class Logger private constructor(
+    private val state: LogState,
+    val name: String,
+    private val sink: LogSink,
+    private val bound: List<Pair<String, Any?>>
 ) {
+
+    constructor(settings: LogSettings, name: String, sink: LogSink) : this(LogState(settings, name), name, sink, emptyList())
 
     /**
      * Convenience constructor for when only the level is customized.
      */
-    constructor(
-        level: LogLevel,
-        name: String = "",
-        logType: KClass<*>? = null
-    ) : this(LogSettings.safe().copy(level = level), name, logType)
+    constructor(level: LogLevel, name: String, sink: LogSink) : this(LogSettings.safe().copy(level = level), name, sink)
 
     /**
      * The current settings. They can be replaced at runtime, e.g. to lower the level for diagnostics:
      *
      *     logger.settings = logger.settings.copy(level = LogLevel.Debug)
      */
-    @Volatile
-    open var settings: LogSettings = settings
+    var settings: LogSettings
+        get() = state.settings
         set(value) {
-            field = value
-            resolved = resolveLevel(value)
+            state.settings = value
         }
-
-    // The level for this logger's name, worked out once per settings change, not on every call
-    @Volatile
-    private var resolved: LogLevel = resolveLevel(settings)
 
     /**
      * The level this logger uses: the longest matching name in [LogSettings.levels], otherwise
      * [LogSettings.level].
      */
-    open val level: LogLevel get() = resolved
-
-    private fun resolveLevel(s: LogSettings): LogLevel {
-        if (s.levels.isEmpty()) return s.level
-        val match = s.levels.keys.filter { name == it || name.startsWith("$it.") }.maxByOrNull { it.length }
-        return if (match == null) s.level else s.levels.getValue(match)
-    }
+    val level: LogLevel get() = state.level
 
     fun isEnabled(level: LogLevel): Boolean = level != LogLevel.Off && level >= this.level
 
     /**
-     * Escape hatch to the wrapped library's logger, e.g. Logback's own Logger, or null if this logger
-     * doesn't wrap one. It is Any because the wrapped types are platform specific and can't be
-     * named in common code. Use [LogFactory.provider] for the wrapped library's root object.
+     * The wrapped library's logger, if the sink wraps one. See [LogSink.raw].
      */
-    open val raw: Any? = null
+    val raw: Any? get() = sink.raw
+
+    /**
+     * Pushes out anything the sink has buffered.
+     */
+    fun flush() = sink.flush()
 
     /** =====================================================================
      * Structured logging: an action with key/value fields ( redacted by the logger's settings )
@@ -164,8 +152,7 @@ abstract class Logger(
      */
     private fun logIfEnabled(level: LogLevel, msg: String?, ex: Throwable?) {
         if(isEnabled(level)) {
-            val s = settings
-            deliver(LogEntry(name, level, msg ?: "", ex, origin = s.origin, scope = s.scope, time = s.clock.now()))
+            deliver(build(level, msg ?: "", ex, null, emptyList()))
         }
     }
 
@@ -179,8 +166,7 @@ abstract class Logger(
         if(isEnabled(level)) {
             val label = msg ?: ""
             val output = callback()
-            val s = settings
-            deliver(LogEntry(name, level, "$label : $output", origin = s.origin, scope = s.scope, time = s.clock.now()))
+            deliver(build(level, "$label : $output", null, null, emptyList()))
         }
     }
 
@@ -202,9 +188,7 @@ abstract class Logger(
         action: String? = null
     ) {
         if(isEnabled(level)) {
-            val s = settings
-            val text = msg ?: ex?.message ?: ""
-            deliver(LogEntry(name, level, text, ex, action, s.origin, s.scope, s.redaction.redact(fields), s.clock.now()))
+            deliver(build(level, msg ?: ex?.message ?: "", ex, action, fields))
         }
     }
 
@@ -226,23 +210,35 @@ abstract class Logger(
      * It shares this logger's settings, so a level change applies to it too. The fields are redacted
      * like any others.
      */
-    fun with(vararg fields: Pair<String, Any?>): Logger = BoundLogger(this, fields.asList())
+    fun with(vararg fields: Pair<String, Any?>): Logger = Logger(state, name, sink, bound + fields.asList())
 
-    /**
-     * Adds anything this logger contributes to the entry, e.g. bound fields. Runs before the filter.
-     */
-    internal open fun decorate(entry: LogEntry): LogEntry = entry
-
-    private fun deliver(entry: LogEntry) {
-        val e = decorate(entry)
-        if (settings.filter?.invoke(e) != false) emit(e)
+    private fun build(
+        level: LogLevel,
+        msg: String,
+        ex: Throwable?,
+        action: String?,
+        fields: List<Pair<String, Any?>>
+    ): LogEntry {
+        val s = settings
+        return LogEntry(
+            name = name,
+            level = level,
+            msg = msg,
+            ex = ex,
+            action = action,
+            origin = s.origin,
+            scope = s.scope,
+            fields = s.redaction.redact(bound + fields),
+            time = s.clock.now(),
+            trace = ex?.let { s.stackTraces.render(it, s.maxTraceLines) }
+        )
     }
 
-    /**
-     * Receives every entry that passed the level check and delivers it to an output, e.g. the console
-     * or a wrapped library such as Logback. This is the method a provider implements.
-     */
-    abstract fun emit(entry: LogEntry)
+    private fun deliver(entry: LogEntry) {
+        if (settings.filter?.invoke(entry) != false) sink.emit(entry)
+    }
+
+    companion object
 }
 
 /**

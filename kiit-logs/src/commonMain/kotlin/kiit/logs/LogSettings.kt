@@ -50,6 +50,16 @@ data class LogSettings(
     val levels: Map<String, LogLevel> = emptyMap(),
     val filter: ((LogEntry) -> Boolean)? = null
 ) {
+    /**
+     * The level for a logger name: the longest name in [levels] that equals it or is a prefix ending
+     * at a dot, otherwise [level].
+     */
+    fun levelFor(name: String): LogLevel {
+        if (levels.isEmpty()) return level
+        val match = levels.keys.filter { name == it || name.startsWith("$it.") }.maxByOrNull { it.length }
+        return if (match == null) level else levels.getValue(match)
+    }
+
     companion object {
         /**
          * Safe defaults: only [LogLevel.Error] and above, no stack traces, and default redaction

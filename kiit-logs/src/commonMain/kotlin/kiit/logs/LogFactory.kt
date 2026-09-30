@@ -52,6 +52,17 @@ interface LogFactory {
      * covers "com.shop.orders.checkout". A more specific name wins over a shorter one.
      */
     fun setLevel(name: String, level: LogLevel)
+
+    /**
+     * Pushes out anything the sink has buffered, e.g. when the app goes to the background.
+     */
+    fun flush()
+
+    /**
+     * Flushes and releases the sink. Call it once, when the app shuts down. Sinks are shared by all
+     * the loggers of a factory, so this is here and not on a single logger.
+     */
+    fun close()
 }
 
 /**
@@ -84,14 +95,16 @@ class ConsoleLogFactory(settings: LogSettings) : LogFactory {
      */
     override val provider: Any = "console"
 
+    private val sink = ConsoleSink()
+
     override fun getLogger(cls: KClass<*>): Logger {
         val key = cls.qualifiedName ?: cls.simpleName ?: "console"
-        return cached(key) { ConsoleLogger(settings, name = key, logType = cls) }
+        return cached(key) { Logger(settings, key, sink) }
     }
 
     override fun getLogger(name: String?): Logger {
         val key = name ?: "console"
-        return cached(key) { ConsoleLogger(settings, name = key) }
+        return cached(key) { Logger(settings, key, sink) }
     }
 
     override fun setLevel(level: LogLevel) {
@@ -104,6 +117,10 @@ class ConsoleLogFactory(settings: LogSettings) : LogFactory {
         settings = settings.copy(levels = levels)
         loggers.load().values.forEach { it.settings = it.settings.copy(levels = levels) }
     }
+
+    override fun flush() = sink.flush()
+
+    override fun close() = sink.close()
 
     private fun cached(key: String, create: () -> Logger): Logger {
         while (true) {

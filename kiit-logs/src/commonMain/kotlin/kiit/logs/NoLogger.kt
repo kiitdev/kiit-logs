@@ -13,11 +13,12 @@
 
 package kiit.logs
 
+private object NoSink : LogSink {
+    override fun emit(entry: LogEntry) = Unit
+}
+
 /**
  * A logger that discards everything. Use it where logging is optional, instead of a null logger,
  * e.g. class OrderService(private val log: Logger = NoLogger)
  */
-object NoLogger : Logger(LogSettings.safe().copy(level = LogLevel.Off), "none") {
-
-    override fun emit(entry: LogEntry) = Unit
-}
+val NoLogger: Logger = Logger(LogSettings.safe().copy(level = LogLevel.Off), "none", NoSink)

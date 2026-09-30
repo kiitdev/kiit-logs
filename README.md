@@ -83,7 +83,7 @@ log.info("place", "order_id" to "abc", "total" to 42)
 4. **Settings.** One `LogSettings` value holds the level, stack trace mode, redaction, origin, scope and clock. Level, stack traces and redaction have no defaults on the constructor, so `LogSettings.safe()` is the way in.
 5. **Redaction.** By default, fields whose key matches a sensitive word get their value replaced with `***`, or are dropped. Keys are compared without case, spaces, `_`, `-` or `.`, so `api_key` and `apiKey` are the same. To use your own rule instead, pass a `Redactor`.
 6. **Stack traces.** `Off` (the default), `Summary` (type and message, then each cause) or `Full` (cut to 50 lines by default). The exception message is always part of the log line.
-7. **Providers.** A logger sends every entry that passes the level check to `emit`. The console logger prints it. A provider extends `Logger` and does something else with it.
+7. **Sinks.** A logger sends every entry that passes the level check and the filter to a `LogSink`. `ConsoleSink` prints it. A provider implements `LogSink` and does something else with it, so it never has to redo the level check, the filter or redaction.
 
 ## Usage
 
@@ -201,19 +201,31 @@ val redactor = Redactor { fields ->
 val settings = LogSettings.safe().copy(redaction = redactor)
 ```
 
-**Write a provider** by extending `Logger` and implementing `emit`. `entry.text` is a ready to print line, and `entry.fields` are the redacted pairs:
+**Write a provider** by implementing `LogSink`. `entry.text` is a ready to print line, `entry.fields` are the redacted pairs, and `entry.trace` is the exception rendered by the stack trace setting:
 
 ```kotlin
-class ListLogger(settings: LogSettings) : Logger(settings, "list") {
+class ListSink : LogSink {
     val lines = mutableListOf<String>()
 
     override fun emit(entry: LogEntry) {
         lines.add(entry.text)
     }
 }
+
+val log = Logger(LogSettings.safe().copy(level = LogLevel.Info), "list", ListSink())
 ```
 
-The level check happens before `emit`, so a provider that wraps another library should leave that library's own level wide open. Otherwise it may drop entries that already passed. `Logger.raw` and `LogFactory.provider` give you the wrapped objects if you need them.
+A sink can also override `flush()` and `close()` if it buffers or holds resources. Both do nothing by default. Call `flush()` when the app goes to the background and `close()` once at shutdown:
+
+```kotlin
+log.flush()      // this logger's sink
+logs.flush()     // the factory's sink
+logs.close()     // flush and release it, all loggers of the factory share it
+```
+
+`ConsoleSink` has nothing to flush or close, because it doesn't buffer.
+
+The level check happens before `emit`, so a sink that wraps another library should leave that library's own level wide open. Otherwise it may drop entries that already passed. `Logger.raw` and `LogFactory.provider` give you the wrapped objects if you need them.
 
 **Test with a fixed time** by replacing `LogSettings.clock` with your own `kotlinx.datetime.Clock`.
 
