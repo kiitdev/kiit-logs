@@ -13,6 +13,8 @@
 
 package kiit.logs
 
+import kotlin.concurrent.Volatile
+
 /**
  * Where in logging something went wrong.
  */
@@ -42,6 +44,31 @@ fun interface LogErrorHandler {
      * @param entry the entry being logged, or null if it wasn't built yet
      */
     fun onError(stage: LogStage, error: Exception, entry: LogEntry?)
+
+    companion object {
+        /**
+         * Prints the first [limit] errors to the console, then stays quiet, so a broken sink, filter or
+         * redactor is noticed without flooding the output. It prints the stage, the logger name and action,
+         * and the error type and message, never the field values. This is the default handler.
+         * To ignore errors completely, use a handler that does nothing: `ErrorPolicy.Handle { _, _, _ -> }`.
+         */
+        fun printing(limit: Int = 3): LogErrorHandler = PrintingHandler(limit)
+    }
+}
+
+private class PrintingHandler(private val limit: Int) : LogErrorHandler {
+
+    // Not exact under threads, at worst one extra line is printed
+    @Volatile
+    private var printed = 0
+
+    override fun onError(stage: LogStage, error: Exception, entry: LogEntry?) {
+        if (printed >= limit) return
+        printed++
+        val where = entry?.let { " in ${it.name} ${it.action ?: ""}".trimEnd() } ?: ""
+        println("kiit-logs: logging failed at $stage$where: ${error::class.simpleName}: ${error.message}")
+        if (printed == limit) println("kiit-logs: more logging failures won't be shown")
+    }
 }
 
 /**
@@ -50,19 +77,18 @@ fun interface LogErrorHandler {
  */
 sealed class ErrorPolicy {
 
-    /** Ignore it. Logging never throws into your code. This is the default. */
-    object Swallow : ErrorPolicy()
-
     /** Throw it to the caller of the log method. Useful in tests and development. */
     object Propagate : ErrorPolicy()
 
-    /** Give it to a [LogErrorHandler], e.g. to print it once or send it to a crash reporter. */
+    /**
+     * Give it to a [LogErrorHandler], e.g. to print it or send it to a crash reporter. Logging doesn't throw
+     * into your code. The default is [LogErrorHandler.printing], which shows the first few errors.
+     */
     class Handle(val handler: LogErrorHandler) : ErrorPolicy()
 }
 
 internal fun ErrorPolicy.report(stage: LogStage, error: Exception, entry: LogEntry?) {
     when (this) {
-        ErrorPolicy.Swallow -> Unit
         ErrorPolicy.Propagate -> throw error
         is ErrorPolicy.Handle -> try {
             handler.onError(stage, error, entry)

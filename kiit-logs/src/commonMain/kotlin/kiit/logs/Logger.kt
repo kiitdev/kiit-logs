@@ -191,7 +191,7 @@ class Logger private constructor(
         if (!isEnabled(level)) return
         val s = settings
         val entry = s.errors.guard(LogStage.Build, null, make) ?: return
-        val keep = s.errors.guard(LogStage.Filter, entry) { s.filter?.invoke(entry) != false } ?: return
+        val keep = s.errors.guard(LogStage.Filter, entry) { s.filter?.invoke(entry) != false } ?: true
         if (keep) s.errors.guard(LogStage.Sink, entry) { sink.emit(entry) }
     }
 

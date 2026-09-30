@@ -35,10 +35,11 @@ import kotlinx.datetime.Clock
  *              hierarchy. Same convention as scope in kiit-codes and kiit-service-id. Empty means unset
  * @param levels levels for logger names, e.g. "com.shop.orders" to Debug. A logger uses the longest name
  *               that equals its name or is a prefix ending at a dot, otherwise [level]
- * @param filter return false to drop an entry before it is emitted, e.g. to silence a noisy action
+ * @param filter return false to drop an entry before it is emitted, e.g. to silence a noisy action.
+ *               If it throws, the error goes to [errors] and the entry is still logged
  * @param maxTraceLines cap on the lines of a full stack trace
- * @param errors what happens when something in logging throws, see [ErrorPolicy]. Swallow by default,
- *               so logging never throws into your code
+ * @param errors what happens when something in logging throws, see [ErrorPolicy]. By default the first few
+ *               errors are printed and logging never throws into your code
  * @param clock supplies the time of each entry. Replace it in tests to get exact times
  */
 data class LogSettings(
@@ -51,7 +52,7 @@ data class LogSettings(
     val maxTraceLines: Int = StackTraces.DEFAULT_MAX_LINES,
     val levels: Map<String, LogLevel> = emptyMap(),
     val filter: ((LogEntry) -> Boolean)? = null,
-    val errors: ErrorPolicy = ErrorPolicy.Swallow
+    val errors: ErrorPolicy = ErrorPolicy.Handle(LogErrorHandler.printing())
 ) {
     /**
      * The level for a logger name: the longest name in [levels] that equals it or is a prefix ending

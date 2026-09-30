@@ -246,16 +246,17 @@ val logs = SinkLogFactory(LogSettings.safe().copy(level = LogLevel.Debug), sink)
 **Decide what happens when logging fails.** A sink can be down, and a filter, a redactor or a lazy message can have a bug. `LogSettings.errors` says what to do about it:
 
 ```kotlin
-val quiet = LogSettings.safe()                                            // Swallow, the default
+val defaults = LogSettings.safe()                                         // print the first 3 errors, never throw
 val strict = LogSettings.safe().copy(errors = ErrorPolicy.Propagate)      // throw to the caller
 val report = LogSettings.safe().copy(
-    errors = ErrorPolicy.Handle { stage, error, entry ->
-        System.err.println("logging failed at $stage: ${error.message}")
-    },
+    errors = ErrorPolicy.Handle { stage, error, entry -> crashReporter.record(error) },
 )
+val silent = LogSettings.safe().copy(errors = ErrorPolicy.Handle { _, _, _ -> })
 ```
 
-`Swallow` means logging never throws into your code, which is the safe choice on a phone. `Propagate` is for tests and development. A handler is told the stage (`Build`, `Filter`, `Sink` or `Lifecycle`), the error, and the entry if it was built. It runs on the calling thread, so keep it quick, and if it throws that is ignored. With a `CompositeSink`, the other sinks still run, and then the first error goes to the policy with the rest attached to it.
+By default logging never throws into your code, which is the safe choice on a phone. The first 3 errors are printed, with the stage, the logger name and action, and the error, but never the field values. After that it stays quiet, so a broken sink or filter doesn't go unnoticed and doesn't flood the output. `Propagate` is for tests and development. A handler is told the stage (`Build`, `Filter`, `Sink` or `Lifecycle`), the error, and the entry if it was built. It runs on the calling thread, so keep it quick, and if it throws that is ignored.
+
+What is logged when something fails depends on the stage. A filter that throws lets the entry through. A redactor or a lazy message that throws drops the entry, so nothing unredacted gets out. With a `CompositeSink`, the other sinks still run, and then the first error goes to the policy with the rest attached to it.
 
 **Test with a fixed time** by replacing `LogSettings.clock` with your own `kotlinx.datetime.Clock`.
 
