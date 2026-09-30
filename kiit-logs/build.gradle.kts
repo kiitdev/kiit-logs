@@ -132,6 +132,15 @@ signing {
     sign(publishing.publications)
 }
 
+// Publishing to Maven local doesn't need signatures, and gpg can't ask for its passphrase in a script.
+// Signing is skipped only when the run has a Maven local publish and no Maven Central one.
+tasks.withType<Sign>().configureEach {
+    onlyIf {
+        val names = gradle.taskGraph.allTasks.map { it.name }
+        !(names.any { it.endsWith("ToMavenLocal") } && names.none { it.contains("MavenCentral") })
+    }
+}
+
 // The jvm() target compiles to JVM 21 bytecode (see the jvm{} block above), so jvmTest needs to
 // run on a matching JVM, same as every other kiit KMP module.
 tasks.named<Test>("jvmTest") {
