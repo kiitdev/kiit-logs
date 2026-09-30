@@ -44,7 +44,7 @@ class ConsoleLogger(
      */
     override fun emit(entry: LogEntry) {
         // The exception is part of the same write, so multi-line output stays together
-        val trace = entry.ex?.let { settings.stackTraces.render(it) }
+        val trace = entry.ex?.let { settings.stackTraces.render(it, settings.maxTraceLines) }
         consoleWrite(entry.level, name, entry.time, if (trace == null) entry.text else "${entry.text}\n$trace")
     }
 }

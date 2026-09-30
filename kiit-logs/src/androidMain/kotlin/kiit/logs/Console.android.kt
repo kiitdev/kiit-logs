@@ -8,6 +8,7 @@ private const val MAX_TAG = 23
 
 internal actual fun consoleWrite(level: LogLevel, tag: String, time: Instant, text: String) {
     val priority = when (level) {
+        LogLevel.Trace -> Log.VERBOSE
         LogLevel.Debug -> Log.DEBUG
         LogLevel.Info -> Log.INFO
         LogLevel.Warn -> Log.WARN

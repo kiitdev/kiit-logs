@@ -23,15 +23,35 @@ enum class StackTraces {
     /** Nothing beyond the message text. */
     Off,
 
-    /** Exception type and message on one line. */
+    /** Exception type and message, then the same for each cause. */
     Summary,
 
-    /** The full stack trace. */
+    /** The full stack trace, cut to a maximum number of lines. */
     Full;
 
-    fun render(ex: Throwable): String? = when (this) {
+    /**
+     * @param ex the exception to render
+     * @param maxLines cap for [Full], the rest is replaced by a line saying how many were cut
+     */
+    fun render(ex: Throwable, maxLines: Int = DEFAULT_MAX_LINES): String? = when (this) {
         Off -> null
-        Summary -> "${ex::class.simpleName}: ${ex.message}"
-        Full -> ex.stackTraceToString()
+        Summary -> generateSequence(ex) { it.cause }
+            .take(MAX_CAUSES)
+            .joinToString("\nCaused by: ") { "${it::class.simpleName}: ${it.message}" }
+        Full -> {
+            val lines = ex.stackTraceToString().lines()
+            if (lines.size <= maxLines) {
+                lines.joinToString("\n")
+            } else {
+                lines.take(maxLines).joinToString("\n") + "\n... ${lines.size - maxLines} more lines"
+            }
+        }
+    }
+
+    companion object {
+        const val DEFAULT_MAX_LINES = 50
+
+        // Bounds the walk so a cause cycle can't loop
+        private const val MAX_CAUSES = 5
     }
 }

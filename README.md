@@ -34,7 +34,7 @@ log.info("place", "order_id" to "abc", "total" to 42)
 2026-09-30T05:13:42.874636Z [OrderService] Info : place, order_id=abc, total=42
 ```
 
-It's a small API for apps that run on Android, iOS and the JVM, from one codebase. It doesn't try to be a full logging framework. There's no file output, rotation or JSON here. On the server, a provider such as SLF4J and Logback plugs in behind the same calls, and that wrapper isn't built yet.
+It's a small API for apps that run on Android, iOS and the JVM, from one codebase. It doesn't try to be a full logging framework. There's no file output, rotation or JSON here. The console logger is meant for development, tests and small apps, and on Android it writes to logcat. A production server should use a provider such as SLF4J and Logback behind the same calls, and that wrapper isn't built yet.
 
 The defaults lean safe. Only errors are logged, stack traces are off, and keys like `password` and `email` are masked before an entry exists. Those are guardrails, not guarantees, and [Limits](#limits) says where they stop.
 
@@ -79,10 +79,10 @@ log.info("place", "order_id" to "abc", "total" to 42)
 
 1. **Action and fields.** The first argument of `debug`, `info`, `warn`, `error` and `fatal` is the action, what was attempted. The rest are key/value pairs. This is the style to reach for first.
 2. **Origin and scope.** `origin` says who owns the system, set once for the app. `scope` says where inside it, like `accounts.signup`. They mean the same thing as in kiit-codes and kiit-service-id.
-3. **Levels.** `Debug`, `Info`, `Warn`, `Error`, `Fatal`, and `Off`. Set the level to `Off` and nothing is logged.
+3. **Levels.** `Trace`, `Debug`, `Info`, `Warn`, `Error`, `Fatal`, and `Off`. Set the level to `Off` and nothing is logged. `Trace` is the finest level and has no shortcut method, use `logAction(LogLevel.Trace, ...)`.
 4. **Settings.** One `LogSettings` value holds the level, stack trace mode, redaction, origin, scope and clock. Level, stack traces and redaction have no defaults on the constructor, so `LogSettings.safe()` is the way in.
 5. **Redaction.** Fields whose key matches a sensitive word get their value replaced with `***`, or are dropped. Keys are compared without case, spaces, `_`, `-` or `.`, so `api_key` and `apiKey` are the same.
-6. **Stack traces.** `Off` (the default), `Summary` (type and message) or `Full`. The exception message is always part of the log line.
+6. **Stack traces.** `Off` (the default), `Summary` (type and message, then each cause) or `Full` (cut to 50 lines by default). The exception message is always part of the log line.
 7. **Providers.** A logger sends every entry that passes the level check to `emit`. The console logger prints it. A provider extends `Logger` and does something else with it.
 
 ## Usage
@@ -132,6 +132,16 @@ Or change one logger:
 ```kotlin
 log.settings = log.settings.copy(level = LogLevel.Debug)
 ```
+
+**Add fields to every entry of a logger**, such as an id for one request:
+
+```kotlin
+val requestLog = log.with("trace_id" to traceId)
+
+requestLog.info("place", "order_id" to id)   // fields: trace_id, order_id
+```
+
+The new logger shares the settings of the one it came from, so a level change applies to it too. The fields are redacted like any others.
 
 **Log free text** when there's no action to name:
 
@@ -186,12 +196,12 @@ The level check happens before `emit`, so a provider that wraps another library 
 
 This is a small logger. Here is what it doesn't do.
 
-1. **Console only.** Android writes to logcat with the real level and tag. The JVM and iOS use `println`. iOS doesn't use `os_log`.
+1. **Console only.** Android writes to logcat with the real level and tag, which is fine for a real app. The JVM and iOS use `println`, so the console logger is for development and tests there. iOS doesn't use `os_log` yet.
 2. **No files, rotation, async or JSON.** That's the provider's job. No provider ships yet.
 3. **Best effort redaction.** It matches on the field key. It doesn't look inside values, message text or an object's `toString()`.
-4. **Trace ids come from elsewhere.** If you use a tracing agent, it puts the ids in the logging context and a provider such as SLF4J passes them along. kiit-logs doesn't create or carry them, and the console logger won't show them.
+4. **Trace ids come from elsewhere.** If you use a tracing agent, it puts the ids in the logging context and a provider such as SLF4J passes them along. kiit-logs doesn't create them or read that context. Use `log.with(...)` to attach an id yourself.
 5. **Flat fields.** Values are plain key/value pairs. There's no nesting and no schema for action names.
-6. **Levels are fixed.** There's no `Trace` level and no custom levels.
+6. **Levels are fixed.** There are no custom levels.
 7. **Levels are per logger.** There's no configuration by package name and no inheritance from a parent logger.
 8. **Not 1.0.** The API is still moving.
 

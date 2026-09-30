@@ -32,6 +32,7 @@ import kotlinx.datetime.Clock
  *               kiit-service-id. Empty means unset
  * @param scope free-form label for where in the origin this is, e.g. "orders.checkout". Dots express
  *              hierarchy. Same convention as scope in kiit-codes and kiit-service-id. Empty means unset
+ * @param maxTraceLines cap on the lines of a full stack trace
  * @param clock supplies the time of each entry. Replace it in tests to get exact times
  */
 data class LogSettings(
@@ -40,7 +41,8 @@ data class LogSettings(
     val redaction: Redaction,
     val origin: String = "",
     val scope: String = "",
-    val clock: Clock = Clock.System
+    val clock: Clock = Clock.System,
+    val maxTraceLines: Int = StackTraces.DEFAULT_MAX_LINES
 ) {
     companion object {
         /**

@@ -37,7 +37,7 @@ abstract class Logger(
      *     logger.settings = logger.settings.copy(level = LogLevel.Debug)
      */
     @Volatile
-    var settings: LogSettings = settings
+    open var settings: LogSettings = settings
 
     open val level: LogLevel get() = settings.level
 
@@ -113,6 +113,17 @@ abstract class Logger(
             logIfEnabled(level, null, fields(), ex, action)
         }
     }
+
+    /**
+     * A logger that adds these fields to every entry it logs, e.g. an id for one request:
+     *
+     *     val log = logger.with("trace_id" to traceId)
+     *     log.info("place", "order_id" to id)   // fields: trace_id, order_id
+     *
+     * It shares this logger's settings, so a level change applies to it too. The fields are redacted
+     * like any others.
+     */
+    fun with(vararg fields: Pair<String, Any?>): Logger = BoundLogger(this, fields.asList())
 
     /**
      * Receives every entry that passed the level check and delivers it to an output, e.g. the console
