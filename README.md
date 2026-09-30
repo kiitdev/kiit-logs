@@ -39,7 +39,7 @@ It's a small API for apps that run on Android, iOS and the JVM, from one codebas
 The defaults lean safe. Only errors are logged, stack traces are off, and keys like `password` and `email` are masked before an entry exists. Those are guardrails, not guarantees, and [Limits](#limits) says where they stop.
 
 ```
-log.info(...)  ->  level check  ->  redact fields  ->  LogEntry  ->  emit  ->  console or provider
+log.info(...)  ->  level check  ->  redact fields  ->  LogEntry  ->  filter  ->  LogSink  ->  console or provider
 ```
 
 ## Start
@@ -49,6 +49,8 @@ kiit-logs hasn't been published to Maven Central yet. For now, publish it to you
 ```bash
 ./gradlew :kiit-logs:publishToMavenLocal
 ```
+
+This doesn't sign the artifacts, so it works without a gpg key.
 
 ```kotlin
 repositories {
@@ -80,7 +82,7 @@ log.info("place", "order_id" to "abc", "total" to 42)
 1. **Action and fields.** The first argument of `debug`, `info`, `warn`, `error` and `fatal` is the action, what was attempted. The rest are key/value pairs. This is the style to reach for first.
 2. **Origin and scope.** `origin` says who owns the system, set once for the app. `scope` says where inside it, like `accounts.signup`. They mean the same thing as in kiit-codes and kiit-service-id.
 3. **Levels.** `Trace`, `Debug`, `Info`, `Warn`, `Error`, `Fatal`, and `Off`. Set the level to `Off` and nothing is logged. `Trace` is the finest level and has no shortcut method, use `logAction(LogLevel.Trace, ...)`.
-4. **Settings.** One `LogSettings` value holds the level, stack trace mode, redaction, origin, scope, error policy and clock. Level, stack traces and redaction have no defaults on the constructor, so `LogSettings.safe()` is the way in.
+4. **Settings.** One `LogSettings` value holds the level, levels by name, stack trace mode, redaction, filter, origin, scope, error policy and clock. Level, stack traces and redaction have no defaults on the constructor, so `LogSettings.safe()` is the way in.
 5. **Redaction.** By default, fields whose key matches a sensitive word get their value replaced with `***`, or are dropped. Keys are compared without case, spaces, `_`, `-` or `.`, so `api_key` and `apiKey` are the same. To use your own rule instead, pass a `Redactor`.
 6. **Stack traces.** `Off` (the default), `Summary` (type and message, then each cause) or `Full` (cut to 50 lines by default). The exception message is always part of the log line.
 7. **Sinks.** A logger sends every entry that passes the level check and the filter to a `LogSink`. `ConsoleSink` prints it. A provider implements `LogSink` and does something else with it, so it never has to redo the level check, the filter or redaction.
