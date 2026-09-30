@@ -16,10 +16,21 @@ package kiit.logs
 import kotlin.reflect.KClass
 
 abstract class Logger(
-    open val level: LogLevel = LogLevel.Warn,
+    open val settings: LogSettings = LogSettings(),
     open val name: String = "",
     open val logType: KClass<*>? = null
 ) : LogSupport {
+
+    /**
+     * Convenience constructor for when only the level is customized.
+     */
+    constructor(
+        level: LogLevel,
+        name: String = "",
+        logType: KClass<*>? = null
+    ) : this(LogSettings(level = level), name, logType)
+
+    open val level: LogLevel get() = settings.level
 
     fun isEnabled(level: LogLevel): Boolean = level >= this.level
 

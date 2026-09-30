@@ -23,10 +23,19 @@ import kotlin.reflect.KClass
  * You should be using the kiit.providers module with support for logback
  */
 class LoggerConsole(
-    level: LogLevel = LogLevel.Debug,
+    settings: LogSettings = LogSettings(level = LogLevel.Debug),
     name: String = "console",
     logType: KClass<*>? = null
-) : Logger(level, name, logType) {
+) : Logger(settings, name, logType) {
+
+    /**
+     * Convenience constructor for when only the level is customized.
+     */
+    constructor(
+        level: LogLevel,
+        name: String = "console",
+        logType: KClass<*>? = null
+    ) : this(LogSettings(level = level), name, logType)
 
     /**
      * Logs to the console
@@ -34,13 +43,6 @@ class LoggerConsole(
      * @param entry: 
      */
     override fun log(entry: LogEntry) {
-        val prefix = "${entry.time} [$name] ${level.name}"
-        when (entry.level) {
-            LogLevel.Debug -> println("$prefix + : + ${entry.msg}")
-            LogLevel.Info  -> println("$prefix + : + ${entry.msg}")
-            LogLevel.Warn  -> println("$prefix + : + ${entry.msg}")
-            LogLevel.Error -> println("$prefix + : + ${entry.msg}")
-            LogLevel.Fatal -> println("$prefix + : + ${entry.msg}")
-        }
+        println("${entry.time} [$name] ${entry.level.name} : ${entry.msg}")
     }
 }
