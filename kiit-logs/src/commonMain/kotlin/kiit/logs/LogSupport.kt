@@ -137,10 +137,6 @@ interface LogSupport {
     }
 
 
-    fun trace(t:Throwable?):String {
-        return t?.stackTraceToString() ?: ""
-    }
-
 
     fun format(msg:String, args:Array<out Any?>):String = formatMessage(msg, args)
 
