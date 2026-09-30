@@ -1,11 +1,6 @@
 package kiit.logs
 
 object LogUtils {
-    fun keys(name:String, fields:List<Pair<String, Any?>>) {
-        val values = fields.joinToString(",") { item -> "${toKey(item.first)}=${item.second}" }
-        println("$name : $values")
-    }
-
     /**
      * Redacts then renders key/value pairs into "structured value"
      * e.g. a=1, b=2, c=3 etc for easier searches in logs
