@@ -15,7 +15,7 @@ package kiit.logs
 
 /**
  * A logger that discards everything. Use it where logging is optional, instead of a null logger,
- * e.g. override val logger: Logger = NoLogger
+ * e.g. class OrderService(private val log: Logger = NoLogger)
  */
 object NoLogger : Logger(LogSettings.safe().copy(level = LogLevel.Off), "none") {
 

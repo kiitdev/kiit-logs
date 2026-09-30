@@ -165,12 +165,12 @@ The new logger shares the settings of the one it came from, so a level change ap
 log.log(LogLevel.Warn, "payment slow")
 ```
 
-**Mix it into a class.** Implement `LogSupport` and the level methods are available directly:
+**Hold a logger in a class**, and call it like any other object:
 
 ```kotlin
-class OrderService(override val logger: Logger) : LogSupport {
+class OrderService(private val log: Logger) {
     fun place(id: String) {
-        info("place", "order_id" to id)
+        log.info("place", "order_id" to id)
     }
 }
 ```
