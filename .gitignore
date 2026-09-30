@@ -25,3 +25,12 @@ replay_pid*
 
 # Kotlin Gradle plugin data, see https://kotlinlang.org/docs/whatsnew20.html#new-directory-for-kotlin-data-in-gradle-projects
 .kotlin/
+# Gradle
+# The Gradle wrapper jar must be committed, it's what lets `./gradlew` bootstrap on a fresh clone.
+!gradle/wrapper/gradle-wrapper.jar
+.gradle/
+build/
+.idea/
+*.iml
+.DS_Store
+local.properties

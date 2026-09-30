@@ -1,0 +1,23 @@
+build:
+  maxIssues: 0
+
+config:
+  validation: true
+  warningsAsErrors: false
+
+style:
+  MaxLineLength:
+    maxLineLength: 140   # same as ktlint, which formats lines up to 140
+  WildcardImport:
+    active: true
+  ReturnCount:
+    max: 6               # guard-clause early returns are idiomatic; default of 2 is too strict
+  ForbiddenComment:
+    active: false        # TODOs in KDoc are used as design notes, not untracked work
+
+complexity:
+  TooManyFunctions:
+    # Logger has the level methods: debug/info/warn/error/fatal, each with fields, an exception and a
+    # lazy variant, plus free text. That breadth is the API, not a smell to split up.
+    thresholdInClasses: 30
+    thresholdInInterfaces: 50
