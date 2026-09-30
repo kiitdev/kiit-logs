@@ -16,7 +16,7 @@ package kiit.logs
 import kotlin.reflect.KClass
 
 abstract class Logger(
-    open val settings: LogSettings = LogSettings(),
+    open val settings: LogSettings,
     open val name: String = "",
     open val logType: KClass<*>? = null
 ) : LogSupport {
@@ -28,7 +28,7 @@ abstract class Logger(
         level: LogLevel,
         name: String = "",
         logType: KClass<*>? = null
-    ) : this(LogSettings(level = level), name, logType)
+    ) : this(LogSettings.safe().copy(level = level), name, logType)
 
     open val level: LogLevel get() = settings.level
 

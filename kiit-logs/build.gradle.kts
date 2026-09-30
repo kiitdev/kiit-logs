@@ -67,6 +67,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+    testOptions {
+        // android.util.Log is used by the console logger, without this it throws "not mocked" in unit tests
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 /**

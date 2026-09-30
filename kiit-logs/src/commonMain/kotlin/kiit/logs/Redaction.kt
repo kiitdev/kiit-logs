@@ -13,7 +13,10 @@
 
 package kiit.logs
 
-/** How a key is compared to the sensitive [Redaction.keys]. Keys are normalized first (trimmed, lowercased). */
+/**
+ * How a key is compared to the sensitive [Redaction.keys]. Both are normalized first: lowercased, with
+ * spaces, `_`, `-` and `.` removed, so "api_key", "api-key" and "apiKey" are the same key.
+ */
 enum class KeyMatch {
     /** Key contains a sensitive word, e.g. "user_password" matches "password". */
     Contains,
@@ -21,7 +24,7 @@ enum class KeyMatch {
     /** Key equals a sensitive word. */
     Exact,
 
-    /** Key ends with a sensitive word, e.g. "access_token" matches "_token". */
+    /** Key ends with a sensitive word, e.g. "access_token" matches "token". */
     Suffix
 }
 
@@ -50,10 +53,10 @@ data class Redaction(
     val action: RedactAction = RedactAction.Mask,
     val mask: String = "***"
 ) {
-    private val normalized: List<String> = keys.map { LogUtils.toKey(it) }
+    private val normalized: List<String> = keys.map { normalize(it) }
 
     fun isSensitive(key: String): Boolean {
-        val k = LogUtils.toKey(key)
+        val k = normalize(key)
         return normalized.any {
             when (match) {
                 KeyMatch.Contains -> k.contains(it)
@@ -71,7 +74,9 @@ data class Redaction(
     companion object {
         val defaults: Set<String> = setOf(
             "username", "email", "phone", "password", "pswd", "firstname", "lastname",
-            "token", "secret", "apikey", "api_key", "api-key", "authorization", "cookie", "ssn"
+            "token", "secret", "apikey", "authorization", "cookie", "ssn"
         )
+
+        private fun normalize(key: String): String = key.lowercase().filter { it.isLetterOrDigit() }
     }
 }

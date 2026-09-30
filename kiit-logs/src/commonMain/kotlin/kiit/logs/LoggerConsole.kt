@@ -23,7 +23,7 @@ import kotlin.reflect.KClass
  * You should be using the kiit.providers module with support for logback
  */
 class LoggerConsole(
-    settings: LogSettings = LogSettings(),
+    settings: LogSettings,
     name: String = "console",
     logType: KClass<*>? = null
 ) : Logger(settings, name, logType) {
@@ -35,7 +35,7 @@ class LoggerConsole(
         level: LogLevel,
         name: String = "console",
         logType: KClass<*>? = null
-    ) : this(LogSettings(level = level), name, logType)
+    ) : this(LogSettings.safe().copy(level = level), name, logType)
 
     /**
      * Logs to the console
@@ -48,7 +48,8 @@ class LoggerConsole(
         val text = listOf(what, entry.msg, LogUtils.render(entry.fields))
             .filter { it.isNotEmpty() }
             .joinToString(", ")
-        println("${entry.time} [$name] ${entry.level.name} : $text")
-        entry.ex?.let { ex -> settings.stackTraces.render(ex)?.let { println(it) } }
+        // The exception is part of the same write, so multi-line output stays together
+        val trace = entry.ex?.let { settings.stackTraces.render(it) }
+        consoleWrite(entry.level, name, entry.time, if (trace == null) text else "$text\n$trace")
     }
 }

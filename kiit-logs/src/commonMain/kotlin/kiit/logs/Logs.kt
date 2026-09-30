@@ -18,6 +18,11 @@ import kotlin.reflect.KClass
 interface Logs {
 
     /**
+     * Settings given to every logger this creates. Required, use [LogSettings.safe] for safe defaults.
+     */
+    val settings: LogSettings
+
+    /**
      * The underlying logging implementation, e.g. "console" or a Logback instance,
      * to access the raw provider.
      */
@@ -35,8 +40,10 @@ interface Logs {
  * Use kiit.providers.logs.LogbackLogs as provider for LogBack
  *
  * kiit-logs has only 1 dependency (kotlinx-datetime).
+ *
+ *     val logs = LogsDefault(LogSettings.safe(origin = "shop.example.com"))
  */
-object LogsDefault : Logs {
+class LogsDefault(override val settings: LogSettings) : Logs {
 
     /**
      * Can't return an singleton of Console
@@ -44,10 +51,10 @@ object LogsDefault : Logs {
     override val provider: Any = "console"
 
     override fun getLogger(cls: KClass<*>): Logger {
-        return LoggerConsole(name = cls.simpleName ?: "console", logType = cls)
+        return LoggerConsole(settings, name = cls.simpleName ?: "console", logType = cls)
     }
 
     override fun getLogger(name: String?): Logger {
-        return LoggerConsole(name = name ?: "console")
+        return LoggerConsole(settings, name = name ?: "console")
     }
 }

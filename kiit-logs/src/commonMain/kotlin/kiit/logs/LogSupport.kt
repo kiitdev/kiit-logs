@@ -88,11 +88,11 @@ interface LogSupport {
      */
     fun log(level: LogLevel, msg: String?, ex: Throwable? = null) {
         if(!logger.isEnabled(level)) return
-        val hasMsg = !msg.isNullOrEmpty()
-        val hasEx = ex != null
-        var fmsg = msg
-        if(!hasMsg && hasEx) fmsg = ex?.message
-        if(hasMsg && hasEx) fmsg += "\n" + ex?.message
+        val fmsg = when {
+            ex == null -> msg
+            msg.isNullOrEmpty() -> ex.message
+            else -> ex.message?.let { "$msg\n$it" } ?: msg
+        }
         logger.performLog(level, fmsg, ex)
     }
 
