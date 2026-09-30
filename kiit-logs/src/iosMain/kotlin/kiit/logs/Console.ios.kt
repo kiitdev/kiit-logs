@@ -1,7 +1,5 @@
 package kiit.logs
 
-import kotlinx.datetime.Instant
-
-internal actual fun consoleWrite(level: LogLevel, tag: String, time: Instant, text: String, maxLength: Int) {
-    println("$time [$tag] ${level.name} : $text")
+internal actual fun consoleWrite(entry: LogEntry, text: String, maxLength: Int) {
+    println("${entry.time} [${entry.name}] ${entry.level.name} : $text")
 }

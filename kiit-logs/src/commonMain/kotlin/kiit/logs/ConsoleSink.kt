@@ -27,7 +27,7 @@ class ConsoleSink(private val maxLength: Int = DEFAULT_MAX_LENGTH) : LogSink {
     override fun emit(entry: LogEntry) {
         // The trace is part of the same write, so multi-line output stays together
         val text = if (entry.trace == null) entry.text else "${entry.text}\n${entry.trace}"
-        consoleWrite(entry.level, entry.name, entry.time, text, maxLength)
+        consoleWrite(entry, text, maxLength)
     }
 
     companion object {

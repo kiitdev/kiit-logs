@@ -13,14 +13,15 @@
 
 package kiit.logs
 
-import kotlinx.datetime.Instant
-
 /**
- * Writes a line to the platform console. JVM and iOS print "time [tag] Level : text".
- * Android writes to logcat with the level and tag, since logcat adds its own time and level.
+ * Writes an entry to the platform console. JVM and iOS print "time [name] Level : text".
+ * Android writes to logcat with the level and the name as the tag, since logcat adds its own time and level.
+ * The entry is passed whole, so a platform can use more of it, e.g. the scope or the fields.
  *
+ * @param entry the entry being written
+ * @param text the display text to write, already built from the entry and its trace
  * @param maxLength longest piece written in one call, in characters. Only Android uses it, because
  *                  logcat cuts a message at about 4000 characters, so a longer text is written as
  *                  several pieces. The JVM and iOS ignore it. 0 means no limit
  */
-internal expect fun consoleWrite(level: LogLevel, tag: String, time: Instant, text: String, maxLength: Int)
+internal expect fun consoleWrite(entry: LogEntry, text: String, maxLength: Int)
