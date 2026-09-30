@@ -42,7 +42,7 @@ class LoggerConsole(
      *
      * @param entry: 
      */
-    override fun log(entry: LogEntry) {
+    override fun emit(entry: LogEntry) {
         // e.g. "orders.checkout place, order_id=abc, total=42". Origin is app-wide, so it is not printed
         val what = listOf(entry.scope, entry.action ?: "").filter { it.isNotEmpty() }.joinToString(" ")
         val text = listOf(what, entry.msg, LogUtils.render(entry.fields))

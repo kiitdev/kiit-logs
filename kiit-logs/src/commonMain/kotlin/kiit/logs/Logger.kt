@@ -53,10 +53,10 @@ abstract class Logger(
      * @param msg
      * @param ex
      */
-    fun performLog(level: LogLevel, msg: String?, ex: Throwable?) {
+    fun logIfEnabled(level: LogLevel, msg: String?, ex: Throwable?) {
         if(isEnabled(level)) {
             val s = settings
-            log(LogEntry(name, level, msg ?: "", ex, origin = s.origin, scope = s.scope, time = s.clock.now()))
+            emit(LogEntry(name, level, msg ?: "", ex, origin = s.origin, scope = s.scope, time = s.clock.now()))
         }
     }
 
@@ -66,12 +66,12 @@ abstract class Logger(
      * @param level
      * @param ex
      */
-    fun performLog(level: LogLevel, msg:String?, callback: () -> String) {
+    fun logIfEnabled(level: LogLevel, msg:String?, callback: () -> String) {
         if(isEnabled(level)) {
             val label = msg ?: ""
             val output = callback()
             val s = settings
-            log(LogEntry(name, level, "$label : $output", origin = s.origin, scope = s.scope, time = s.clock.now()))
+            emit(LogEntry(name, level, "$label : $output", origin = s.origin, scope = s.scope, time = s.clock.now()))
         }
     }
 
@@ -85,7 +85,7 @@ abstract class Logger(
      * @param ex
      * @param action what was attempted, for structured logs
      */
-    fun performLog(
+    fun logIfEnabled(
         level: LogLevel,
         msg: String?,
         fields: List<Pair<String, Any?>>,
@@ -95,18 +95,22 @@ abstract class Logger(
         if(isEnabled(level)) {
             val s = settings
             val text = msg ?: ex?.message ?: ""
-            log(LogEntry(name, level, text, ex, action, s.origin, s.scope, s.redaction.apply(fields), s.clock.now()))
+            emit(LogEntry(name, level, text, ex, action, s.origin, s.scope, s.redaction.apply(fields), s.clock.now()))
         }
     }
 
     /**
      * Logs an action. The fields are only built if the level is enabled.
      */
-    fun performLog(level: LogLevel, action: String, ex: Throwable?, fields: () -> List<Pair<String, Any?>>) {
+    fun logIfEnabled(level: LogLevel, action: String, ex: Throwable?, fields: () -> List<Pair<String, Any?>>) {
         if(isEnabled(level)) {
-            performLog(level, null, fields(), ex, action)
+            logIfEnabled(level, null, fields(), ex, action)
         }
     }
 
-    abstract fun log(entry: LogEntry)
+    /**
+     * Receives every entry that passed the level check and delivers it to an output, e.g. the console
+     * or a wrapped library such as Logback. This is the method a provider implements.
+     */
+    abstract fun emit(entry: LogEntry)
 }

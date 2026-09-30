@@ -19,5 +19,5 @@ package kiit.logs
  */
 object LoggerNone : Logger(LogSettings.safe().copy(level = LogLevel.Off), "none") {
 
-    override fun log(entry: LogEntry) = Unit
+    override fun emit(entry: LogEntry) = Unit
 }

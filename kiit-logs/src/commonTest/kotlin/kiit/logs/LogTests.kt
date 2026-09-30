@@ -87,7 +87,7 @@ class LogTests {
 
         var entries = mutableListOf<LogEntry>()
 
-        override fun log(entry: LogEntry) {
+        override fun emit(entry: LogEntry) {
             entries.add(entry)
         }
     }

@@ -62,17 +62,17 @@ interface LogSupport {
      * Structured logging, lazy: fields are only built if the level is enabled
      * ======================================================================
      */
-    fun debug(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) = logger.performLog(LogLevel.Debug, action, ex, fields)
-    fun info (action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) = logger.performLog(LogLevel.Info , action, ex, fields)
-    fun warn (action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) = logger.performLog(LogLevel.Warn , action, ex, fields)
-    fun error(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) = logger.performLog(LogLevel.Error, action, ex, fields)
-    fun fatal(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) = logger.performLog(LogLevel.Fatal, action, ex, fields)
+    fun debug(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) = logger.logIfEnabled(LogLevel.Debug, action, ex, fields)
+    fun info (action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) = logger.logIfEnabled(LogLevel.Info , action, ex, fields)
+    fun warn (action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) = logger.logIfEnabled(LogLevel.Warn , action, ex, fields)
+    fun error(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) = logger.logIfEnabled(LogLevel.Error, action, ex, fields)
+    fun fatal(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) = logger.logIfEnabled(LogLevel.Fatal, action, ex, fields)
 
     /**
      * Logs an action at any level
      */
     fun action(level: LogLevel, action: String, ex: Throwable?, fields: Array<out Pair<String, Any?>>) {
-        logger.performLog(level, null, fields.asList(), ex, action)
+        logger.logIfEnabled(level, null, fields.asList(), ex, action)
     }
 
     /** =====================================================================
@@ -93,7 +93,7 @@ interface LogSupport {
             msg.isNullOrEmpty() -> ex.message
             else -> ex.message?.let { "$msg\n$it" } ?: msg
         }
-        logger.performLog(level, fmsg, ex)
+        logger.logIfEnabled(level, fmsg, ex)
     }
 
     /**
@@ -102,6 +102,6 @@ interface LogSupport {
      * log(LogLevel.Debug, "updating user") { " some expensive message to build" }
      */
     fun log(level: LogLevel, msg: String? = null, callback: () -> String) {
-        logger.performLog(level, msg, callback)
+        logger.logIfEnabled(level, msg, callback)
     }
 }
