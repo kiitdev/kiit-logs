@@ -13,6 +13,8 @@
 
 package kiit.logs
 
+import kotlinx.datetime.Clock
+
 /**
  * Settings for a [Logger]. Passed as the primary constructor argument so new options
  * can be added here without changing every logger's constructor.
@@ -30,13 +32,15 @@ package kiit.logs
  *               kiit-service-id. Empty means unset
  * @param scope free-form label for where in the origin this is, e.g. "orders.checkout". Dots express
  *              hierarchy. Same convention as scope in kiit-codes and kiit-service-id. Empty means unset
+ * @param clock supplies the time of each entry. Replace it in tests to get exact times
  */
 data class LogSettings(
     val level: LogLevel,
     val stackTraces: StackTraces,
     val redaction: Redaction,
     val origin: String = "",
-    val scope: String = ""
+    val scope: String = "",
+    val clock: Clock = Clock.System
 ) {
     companion object {
         /**

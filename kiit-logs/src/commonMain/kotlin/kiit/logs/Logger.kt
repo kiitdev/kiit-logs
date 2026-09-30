@@ -13,10 +13,11 @@
 
 package kiit.logs
 
+import kotlin.concurrent.Volatile
 import kotlin.reflect.KClass
 
 abstract class Logger(
-    open val settings: LogSettings,
+    settings: LogSettings,
     open val name: String = "",
     open val logType: KClass<*>? = null
 ) : LogSupport {
@@ -29,6 +30,14 @@ abstract class Logger(
         name: String = "",
         logType: KClass<*>? = null
     ) : this(LogSettings.safe().copy(level = level), name, logType)
+
+    /**
+     * The current settings. They can be replaced at runtime, e.g. to lower the level for diagnostics:
+     *
+     *     logger.settings = logger.settings.copy(level = LogLevel.Debug)
+     */
+    @Volatile
+    var settings: LogSettings = settings
 
     open val level: LogLevel get() = settings.level
 
@@ -46,7 +55,8 @@ abstract class Logger(
      */
     fun performLog(level: LogLevel, msg: String?, ex: Throwable?) {
         if(isEnabled(level)) {
-            log(LogEntry(name, level, msg ?: "", ex, origin = settings.origin, scope = settings.scope))
+            val s = settings
+            log(LogEntry(name, level, msg ?: "", ex, origin = s.origin, scope = s.scope, time = s.clock.now()))
         }
     }
 
@@ -60,7 +70,8 @@ abstract class Logger(
         if(isEnabled(level)) {
             val label = msg ?: ""
             val output = callback()
-            log(LogEntry(name, level, "$label : $output", origin = settings.origin, scope = settings.scope))
+            val s = settings
+            log(LogEntry(name, level, "$label : $output", origin = s.origin, scope = s.scope, time = s.clock.now()))
         }
     }
 
@@ -82,8 +93,9 @@ abstract class Logger(
         action: String? = null
     ) {
         if(isEnabled(level)) {
+            val s = settings
             val text = msg ?: ex?.message ?: ""
-            log(LogEntry(name, level, text, ex, action, settings.origin, settings.scope, settings.redaction.apply(fields)))
+            log(LogEntry(name, level, text, ex, action, s.origin, s.scope, s.redaction.apply(fields), s.clock.now()))
         }
     }
 

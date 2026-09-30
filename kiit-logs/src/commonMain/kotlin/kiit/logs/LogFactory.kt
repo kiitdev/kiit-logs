@@ -1,0 +1,107 @@
+/**
+ *  <kiit_header>
+ * url: www.kiit.dev
+ * git: www.github.com/slatekit/kiit
+ * org: www.codehelix.co
+ * author: Kishore Reddy
+ * copyright: 2016 CodeHelix Solutions Inc.
+ * license: refer to website and/or github
+ * 
+ * 
+ *  </kiit_header>
+ */
+
+package kiit.logs
+
+import kotlin.concurrent.Volatile
+import kotlin.concurrent.atomics.AtomicReference
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.reflect.KClass
+
+/**
+ * Creates and caches loggers, all with the same [settings].
+ */
+interface LogFactory {
+
+    /**
+     * Settings given to every logger this creates. Required, use [LogSettings.safe] for safe defaults.
+     */
+    val settings: LogSettings
+
+    /**
+     * The underlying logging implementation, e.g. "console" or a Logback instance,
+     * to access the raw provider.
+     */
+    val provider: Any
+
+    @Suppress("UNCHECKED_CAST")
+    fun <T> providerAs(): T = provider as T
+
+    fun getLogger(name: String? = ""): Logger
+    fun getLogger(cls: KClass<*>): Logger
+
+    /**
+     * Changes the level at runtime, e.g. to Debug for diagnostics. Applies to loggers already
+     * created and to loggers created later.
+     *
+     * The level here is the only gate. A provider that wraps another library, e.g. Logback,
+     * should leave the wrapped library's own level wide open so it doesn't drop what passes here.
+     */
+    fun setLevel(level: LogLevel)
+}
+
+/**
+ * Creates console loggers. Simple default, use a provider factory such as one for Logback
+ * when you need more.
+ *
+ * kiit-logs has only 1 dependency (kotlinx-datetime).
+ *
+ *     val logFactory = ConsoleLogFactory(LogSettings.safe(origin = "shop.example.com"))
+ *
+ * Loggers are cached by name, so getLogger returns the same logger for the same name.
+ */
+@OptIn(ExperimentalAtomicApi::class)
+class ConsoleLogFactory(settings: LogSettings) : LogFactory {
+
+    @Volatile
+    override var settings: LogSettings = settings
+        private set
+
+    // Copy-on-write, so reads and lookups need no lock
+    private val loggers = AtomicReference<Map<String, Logger>>(emptyMap())
+
+    /**
+     * Can't return an singleton of Console
+     */
+    override val provider: Any = "console"
+
+    override fun getLogger(cls: KClass<*>): Logger {
+        val key = cls.qualifiedName ?: cls.simpleName ?: "console"
+        return cached(key) { LoggerConsole(settings, name = cls.simpleName ?: "console", logType = cls) }
+    }
+
+    override fun getLogger(name: String?): Logger {
+        val key = name ?: "console"
+        return cached(key) { LoggerConsole(settings, name = key) }
+    }
+
+    override fun setLevel(level: LogLevel) {
+        settings = settings.copy(level = level)
+        loggers.load().values.forEach { it.settings = it.settings.copy(level = level) }
+    }
+
+    private fun cached(key: String, create: () -> Logger): Logger {
+        while (true) {
+            val current = loggers.load()
+            current[key]?.let { return it }
+            val created = create()
+            if (loggers.compareAndSet(current, current + (key to created))) {
+                // setLevel may have run after this logger read the settings but before it was stored
+                if (created.level != settings.level) {
+                    created.settings = created.settings.copy(level = settings.level)
+                }
+                return created
+            }
+        }
+    }
+}
