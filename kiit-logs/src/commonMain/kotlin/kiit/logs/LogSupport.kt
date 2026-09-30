@@ -19,7 +19,7 @@ package kiit.logs
 interface LogSupport {
 
     /**
-     * The logger that receives all entries. Use [LoggerNoOp] to turn logging off explicitly.
+     * The logger that receives all entries. Use [LoggerNone] to turn logging off explicitly.
      */
     val logger: Logger
 
