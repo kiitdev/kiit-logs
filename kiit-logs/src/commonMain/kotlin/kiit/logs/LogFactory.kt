@@ -13,9 +13,6 @@
 
 package kiit.logs
 
-import kotlin.concurrent.Volatile
-import kotlin.concurrent.atomics.AtomicReference
-import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.reflect.KClass
 
 /**
@@ -69,72 +66,3 @@ interface LogFactory {
  * [LogFactory.provider] as T, or null if it is a different type.
  */
 inline fun <reified T> LogFactory.providerAs(): T? = provider as? T
-
-/**
- * Creates console loggers. Simple default, use a provider factory such as one for Logback
- * when you need more.
- *
- * kiit-logs has only 1 dependency (kotlinx-datetime).
- *
- *     val logFactory = ConsoleLogFactory(LogSettings.safe(origin = "shop.example.com"))
- *
- * Loggers are cached by name, so getLogger returns the same logger for the same name.
- */
-@OptIn(ExperimentalAtomicApi::class)
-class ConsoleLogFactory(settings: LogSettings) : LogFactory {
-
-    @Volatile
-    override var settings: LogSettings = settings
-        private set
-
-    // Copy-on-write, so reads and lookups need no lock
-    private val loggers = AtomicReference<Map<String, Logger>>(emptyMap())
-
-    /**
-     * Can't return an singleton of Console
-     */
-    override val provider: Any = "console"
-
-    private val sink = ConsoleSink()
-
-    override fun getLogger(cls: KClass<*>): Logger {
-        val key = cls.qualifiedName ?: cls.simpleName ?: "console"
-        return cached(key) { Logger(settings, key, sink) }
-    }
-
-    override fun getLogger(name: String?): Logger {
-        val key = name ?: "console"
-        return cached(key) { Logger(settings, key, sink) }
-    }
-
-    override fun setLevel(level: LogLevel) {
-        settings = settings.copy(level = level)
-        loggers.load().values.forEach { it.settings = it.settings.copy(level = level) }
-    }
-
-    override fun setLevel(name: String, level: LogLevel) {
-        val levels = settings.levels + (name to level)
-        settings = settings.copy(levels = levels)
-        loggers.load().values.forEach { it.settings = it.settings.copy(levels = levels) }
-    }
-
-    override fun flush() = sink.flush()
-
-    override fun close() = sink.close()
-
-    private fun cached(key: String, create: () -> Logger): Logger {
-        while (true) {
-            val current = loggers.load()
-            current[key]?.let { return it }
-            val created = create()
-            if (loggers.compareAndSet(current, current + (key to created))) {
-                // setLevel may have run after this logger read the settings but before it was stored
-                val latest = settings
-                if (created.settings.level != latest.level || created.settings.levels != latest.levels) {
-                    created.settings = created.settings.copy(level = latest.level, levels = latest.levels)
-                }
-                return created
-            }
-        }
-    }
-}
