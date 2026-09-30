@@ -20,5 +20,6 @@ data class LogEntry(
     val msg: String = "",
     val ex: Throwable? = null,
     val tag: String? = null,
-    val time: Instant = Clock.System.now()
+    val time: Instant = Clock.System.now(),
+    val fields: List<Pair<String, Any?>> = emptyList()
 )

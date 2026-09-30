@@ -43,6 +43,8 @@ class LoggerConsole(
      * @param entry: 
      */
     override fun log(entry: LogEntry) {
-        println("${entry.time} [$name] ${entry.level.name} : ${entry.msg}")
+        val fields = if (entry.fields.isEmpty()) "" else " : " + LogUtils.render(entry.fields)
+        println("${entry.time} [$name] ${entry.level.name} : ${entry.msg}$fields")
+        entry.ex?.let { ex -> settings.stackTraces.render(ex)?.let { println(it) } }
     }
 }

@@ -64,5 +64,20 @@ abstract class Logger(
         }
     }
 
+    /**
+     * Logs an entry with key/value fields. Fields are redacted per [settings] before the
+     * entry is created.
+     *
+     * @param level
+     * @param msg
+     * @param fields
+     * @param ex
+     */
+    fun performLog(level: LogLevel, msg: String?, fields: List<Pair<String, Any?>>, ex: Throwable? = null) {
+        if(level >= this.level) {
+            log(LogEntry(name, level, msg ?: "", ex, fields = settings.redaction.apply(fields)))
+        }
+    }
+
     abstract fun log(entry: LogEntry)
 }

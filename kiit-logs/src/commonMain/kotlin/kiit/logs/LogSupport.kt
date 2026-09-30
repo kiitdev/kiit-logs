@@ -74,11 +74,11 @@ interface LogSupport {
      * log.error( "updating user", listOf( "user_id" to "abc123", "promo-code" to "xyz-111" ) )
      * ======================================================================
      */
-    fun debug(msg: String, pairs:List<Pair<String, Any?>>) = log(LogLevel.Debug, "$msg : ${format(pairs)}")
-    fun info (msg: String, pairs:List<Pair<String, Any?>>) = log(LogLevel.Info , "$msg : ${format(pairs)}")
-    fun warn (msg: String, pairs:List<Pair<String, Any?>>) = log(LogLevel.Warn , "$msg : ${format(pairs)}")
-    fun error(msg: String, pairs:List<Pair<String, Any?>>) = log(LogLevel.Error, "$msg : ${format(pairs)}")
-    fun fatal(msg: String, pairs:List<Pair<String, Any?>>) = log(LogLevel.Fatal, "$msg : ${format(pairs)}")
+    fun debug(msg: String, pairs:List<Pair<String, Any?>>) = log(LogLevel.Debug, msg, pairs)
+    fun info (msg: String, pairs:List<Pair<String, Any?>>) = log(LogLevel.Info , msg, pairs)
+    fun warn (msg: String, pairs:List<Pair<String, Any?>>) = log(LogLevel.Warn , msg, pairs)
+    fun error(msg: String, pairs:List<Pair<String, Any?>>) = log(LogLevel.Error, msg, pairs)
+    fun fatal(msg: String, pairs:List<Pair<String, Any?>>) = log(LogLevel.Fatal, msg, pairs)
 
     /**
      * Logs an entry
@@ -100,8 +100,14 @@ interface LogSupport {
      * Logs key/value pairs
      */
     fun log(level: LogLevel, ex:Throwable?, msg: String?, pairs:List<Pair<String,String>>) {
-        val info = pairs.joinToString { it -> it.first + "=" + it.second }
-        log(level, "$msg $info", ex)
+        logger?.let { l -> l.performLog(level, msg, pairs, ex) }
+    }
+
+    /**
+     * Logs key/value pairs. Pairs are redacted by the logger's settings.
+     */
+    fun log(level: LogLevel, msg: String?, pairs:List<Pair<String, Any?>>) {
+        logger?.let { l -> l.performLog(level, msg, pairs) }
     }
 
     /**
@@ -139,6 +145,6 @@ interface LogSupport {
      * This varies from logging provider so this is an easier text/classic only way to do ( for now )
      */
     fun format(pairs:List<Pair<String, Any?>>):String  {
-        return LogUtils.format(pairs)
+        return LogUtils.format(pairs, logger?.settings?.redaction ?: Redaction())
     }
 }
