@@ -13,6 +13,8 @@
 
 package kiit.logs
 
+// The code is the rank of the level, so the numbers are the definition and don't need names
+@Suppress("MagicNumber")
 sealed class LogLevel(val name: String, val code: Int) {
     operator fun compareTo(lv: LogLevel): Int = this.code.compareTo(lv.code)
 

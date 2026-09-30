@@ -39,7 +39,8 @@ class Logger private constructor(
     private val sink: LogSink,
     private val bound: List<Pair<String, Any?>>
 ) {
-    constructor(settings: LogSettings, name: String, sink: LogSink) : this(LogState(settings, name), name, sink, emptyList())
+    constructor(settings: LogSettings, name: String, sink: LogSink) :
+        this(LogState(settings, name), name, sink, emptyList())
 
     /**
      * Convenience constructor for when only the level is customized.

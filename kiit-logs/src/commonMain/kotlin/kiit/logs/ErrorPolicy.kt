@@ -98,7 +98,9 @@ internal fun ErrorPolicy.report(stage: LogStage, error: Exception, entry: LogEnt
 
 /**
  * Runs the block. If it throws, the policy decides what happens, and the result is null when it doesn't propagate.
+ * It catches any Exception on purpose, since a sink, filter or redactor can throw anything.
  */
+@Suppress("TooGenericExceptionCaught")
 internal inline fun <T> ErrorPolicy.guard(stage: LogStage, entry: LogEntry?, block: () -> T): T? =
     try {
         block()
