@@ -15,7 +15,8 @@ package kiit.logs
 
 /**
  * Sends each entry to several sinks, e.g. the console and a crash reporter. A sink that throws
- * doesn't stop the others, and logging never throws into the caller.
+ * doesn't stop the others. Once they have all run, the first error is thrown, with the rest attached
+ * to it, so the logger's [ErrorPolicy] decides what happens.
  *
  *     val sink = CompositeSink(ConsoleSink(), remoteSink.minLevel(LogLevel.Error))
  */
@@ -29,14 +30,22 @@ class CompositeSink(private val sinks: List<LogSink>) : LogSink {
 
     override fun close() = each { it.close() }
 
+    /**
+     * The first sink that has one for the name.
+     */
+    override fun rawFor(name: String): Any? = sinks.firstNotNullOfOrNull { it.rawFor(name) }
+
     private inline fun each(action: (LogSink) -> Unit) {
+        var first: Exception? = null
         sinks.forEach { sink ->
             try {
                 action(sink)
-            } catch (ignored: Throwable) {
-                // One broken sink shouldn't take the others, or the app, down with it
+            } catch (e: Exception) {
+                val head = first
+                if (head == null) first = e else head.addSuppressed(e)
             }
         }
+        first?.let { throw it }
     }
 }
 
@@ -49,7 +58,7 @@ private class FilteredSink(private val sink: LogSink, private val keep: (LogEntr
 
     override fun close() = sink.close()
 
-    override val raw: Any? get() = sink.raw
+    override fun rawFor(name: String): Any? = sink.rawFor(name)
 }
 
 /**

@@ -39,9 +39,10 @@ interface LogSink {
     fun close() {}
 
     /**
-     * Escape hatch to the wrapped library's logger, e.g. Logback's own Logger, or null if this sink
-     * doesn't wrap one. It is Any because the wrapped types are platform specific and can't be
-     * named in common code. Use [LogFactory.provider] for the wrapped library's root object.
+     * Escape hatch to the wrapped library's logger for a logger name, e.g. Logback's own Logger, or
+     * null if this sink doesn't wrap one. A sink is shared by every logger of a factory, so it is given
+     * the name. It is Any because the wrapped types are platform specific and can't be named in
+     * common code. Use [LogFactory.provider] for the wrapped library's root object.
      */
-    val raw: Any? get() = null
+    fun rawFor(name: String): Any? = null
 }

@@ -61,9 +61,13 @@ open class SinkLogFactory(
         loggers.load().values.forEach { it.settings = it.settings.copy(levels = levels) }
     }
 
-    override fun flush() = sink.flush()
+    override fun flush() {
+        settings.errors.guard(LogStage.Lifecycle, null) { sink.flush() }
+    }
 
-    override fun close() = sink.close()
+    override fun close() {
+        settings.errors.guard(LogStage.Lifecycle, null) { sink.close() }
+    }
 
     private fun cached(key: String, create: () -> Logger): Logger {
         while (true) {

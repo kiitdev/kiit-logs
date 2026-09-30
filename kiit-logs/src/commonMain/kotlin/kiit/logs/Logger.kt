@@ -67,14 +67,16 @@ class Logger private constructor(
     fun isEnabled(level: LogLevel): Boolean = level != LogLevel.Off && level >= this.level
 
     /**
-     * The wrapped library's logger, if the sink wraps one. See [LogSink.raw].
+     * The wrapped library's logger for this logger's name, if the sink wraps one. See [LogSink.rawFor].
      */
-    val raw: Any? get() = sink.raw
+    val raw: Any? get() = sink.rawFor(name)
 
     /**
      * Pushes out anything the sink has buffered.
      */
-    fun flush() = sink.flush()
+    fun flush() {
+        settings.errors.guard(LogStage.Lifecycle, null) { sink.flush() }
+    }
 
     /** =====================================================================
      * Structured logging: an action with key/value fields ( redacted by the logger's settings )
@@ -125,13 +127,14 @@ class Logger private constructor(
      * @param ex
      */
     fun log(level: LogLevel, msg: String?, ex: Throwable? = null) {
-        if(!isEnabled(level)) return
-        val fmsg = when {
-            ex == null -> msg
-            msg.isNullOrEmpty() -> ex.message
-            else -> ex.message?.let { "$msg\n$it" } ?: msg
+        send(level) {
+            val text = when {
+                ex == null -> msg
+                msg.isNullOrEmpty() -> ex.message
+                else -> ex.message?.let { "$msg\n$it" } ?: msg
+            }
+            build(level, text ?: "", ex, null, emptyList())
         }
-        logIfEnabled(level, fmsg, ex)
     }
 
     /**
@@ -143,42 +146,13 @@ class Logger private constructor(
         logIfEnabled(level, msg, callback)
     }
 
-    /**
-     * Logs an entry
-     *
-     * @param level
-     * @param msg
-     * @param ex
-     */
-    private fun logIfEnabled(level: LogLevel, msg: String?, ex: Throwable?) {
-        if(isEnabled(level)) {
-            deliver(build(level, msg ?: "", ex, null, emptyList()))
-        }
-    }
-
-    /**
-     * Logs an entry
-     *
-     * @param level
-     * @param ex
-     */
-    private fun logIfEnabled(level: LogLevel, msg:String?, callback: () -> String) {
-        if(isEnabled(level)) {
-            val label = msg ?: ""
-            val output = callback()
-            deliver(build(level, "$label : $output", null, null, emptyList()))
-        }
+    private fun logIfEnabled(level: LogLevel, msg: String?, callback: () -> String) {
+        send(level) { build(level, "${msg ?: ""} : ${callback()}", null, null, emptyList()) }
     }
 
     /**
      * Logs an entry with key/value fields. Fields are redacted per [settings] before the
      * entry is created.
-     *
-     * @param level
-     * @param msg
-     * @param fields
-     * @param ex
-     * @param action what was attempted, for structured logs
      */
     private fun logIfEnabled(
         level: LogLevel,
@@ -187,18 +161,14 @@ class Logger private constructor(
         ex: Throwable? = null,
         action: String? = null
     ) {
-        if(isEnabled(level)) {
-            deliver(build(level, msg ?: ex?.message ?: "", ex, action, fields))
-        }
+        send(level) { build(level, msg ?: ex?.message ?: "", ex, action, fields) }
     }
 
     /**
      * Logs an action. The fields are only built if the level is enabled.
      */
     private fun logIfEnabled(level: LogLevel, action: String, ex: Throwable?, fields: () -> List<Pair<String, Any?>>) {
-        if(isEnabled(level)) {
-            logIfEnabled(level, null, fields(), ex, action)
-        }
+        send(level) { build(level, ex?.message ?: "", ex, action, fields()) }
     }
 
     /**
@@ -211,6 +181,19 @@ class Logger private constructor(
      * like any others.
      */
     fun with(vararg fields: Pair<String, Any?>): Logger = Logger(state, name, sink, bound + fields.asList())
+
+    /**
+     * The one path every log call takes: level check, build the entry, filter, deliver. Anything that
+     * throws along the way goes to the [LogSettings.errors] policy, and a lazy message or field lambda
+     * is only run when the level is enabled.
+     */
+    private inline fun send(level: LogLevel, make: () -> LogEntry) {
+        if (!isEnabled(level)) return
+        val s = settings
+        val entry = s.errors.guard(LogStage.Build, null, make) ?: return
+        val keep = s.errors.guard(LogStage.Filter, entry) { s.filter?.invoke(entry) != false } ?: return
+        if (keep) s.errors.guard(LogStage.Sink, entry) { sink.emit(entry) }
+    }
 
     private fun build(
         level: LogLevel,
@@ -232,10 +215,6 @@ class Logger private constructor(
             time = s.clock.now(),
             trace = ex?.let { s.stackTraces.render(it, s.maxTraceLines) }
         )
-    }
-
-    private fun deliver(entry: LogEntry) {
-        if (settings.filter?.invoke(entry) != false) sink.emit(entry)
     }
 
     companion object

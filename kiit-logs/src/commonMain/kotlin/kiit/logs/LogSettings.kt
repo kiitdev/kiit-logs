@@ -37,6 +37,8 @@ import kotlinx.datetime.Clock
  *               that equals its name or is a prefix ending at a dot, otherwise [level]
  * @param filter return false to drop an entry before it is emitted, e.g. to silence a noisy action
  * @param maxTraceLines cap on the lines of a full stack trace
+ * @param errors what happens when something in logging throws, see [ErrorPolicy]. Swallow by default,
+ *               so logging never throws into your code
  * @param clock supplies the time of each entry. Replace it in tests to get exact times
  */
 data class LogSettings(
@@ -48,7 +50,8 @@ data class LogSettings(
     val clock: Clock = Clock.System,
     val maxTraceLines: Int = StackTraces.DEFAULT_MAX_LINES,
     val levels: Map<String, LogLevel> = emptyMap(),
-    val filter: ((LogEntry) -> Boolean)? = null
+    val filter: ((LogEntry) -> Boolean)? = null,
+    val errors: ErrorPolicy = ErrorPolicy.Swallow
 ) {
     /**
      * The level for a logger name: the longest name in [levels] that equals it or is a prefix ending
