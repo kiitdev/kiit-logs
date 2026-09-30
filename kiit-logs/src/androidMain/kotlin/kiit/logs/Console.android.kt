@@ -16,5 +16,6 @@ internal actual fun consoleWrite(level: LogLevel, tag: String, time: Instant, te
         LogLevel.Fatal -> Log.ASSERT
         LogLevel.Off -> Log.INFO
     }
-    Log.println(priority, tag.take(MAX_TAG), text)
+    // Names can be long ( com.shop.orders.OrderService ), logcat only needs the class part
+    Log.println(priority, tag.substringAfterLast('.').take(MAX_TAG), text)
 }

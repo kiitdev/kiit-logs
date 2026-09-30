@@ -38,8 +38,26 @@ abstract class Logger(
      */
     @Volatile
     open var settings: LogSettings = settings
+        set(value) {
+            field = value
+            resolved = resolveLevel(value)
+        }
 
-    open val level: LogLevel get() = settings.level
+    // The level for this logger's name, worked out once per settings change, not on every call
+    @Volatile
+    private var resolved: LogLevel = resolveLevel(settings)
+
+    /**
+     * The level this logger uses: the longest matching name in [LogSettings.levels], otherwise
+     * [LogSettings.level].
+     */
+    open val level: LogLevel get() = resolved
+
+    private fun resolveLevel(s: LogSettings): LogLevel {
+        if (s.levels.isEmpty()) return s.level
+        val match = s.levels.keys.filter { name == it || name.startsWith("$it.") }.maxByOrNull { it.length }
+        return if (match == null) s.level else s.levels.getValue(match)
+    }
 
     fun isEnabled(level: LogLevel): Boolean = level != LogLevel.Off && level >= this.level
 
@@ -62,7 +80,7 @@ abstract class Logger(
     fun logIfEnabled(level: LogLevel, msg: String?, ex: Throwable?) {
         if(isEnabled(level)) {
             val s = settings
-            emit(LogEntry(name, level, msg ?: "", ex, origin = s.origin, scope = s.scope, time = s.clock.now()))
+            deliver(LogEntry(name, level, msg ?: "", ex, origin = s.origin, scope = s.scope, time = s.clock.now()))
         }
     }
 
@@ -77,7 +95,7 @@ abstract class Logger(
             val label = msg ?: ""
             val output = callback()
             val s = settings
-            emit(LogEntry(name, level, "$label : $output", origin = s.origin, scope = s.scope, time = s.clock.now()))
+            deliver(LogEntry(name, level, "$label : $output", origin = s.origin, scope = s.scope, time = s.clock.now()))
         }
     }
 
@@ -101,7 +119,7 @@ abstract class Logger(
         if(isEnabled(level)) {
             val s = settings
             val text = msg ?: ex?.message ?: ""
-            emit(LogEntry(name, level, text, ex, action, s.origin, s.scope, s.redaction.redact(fields), s.clock.now()))
+            deliver(LogEntry(name, level, text, ex, action, s.origin, s.scope, s.redaction.redact(fields), s.clock.now()))
         }
     }
 
@@ -124,6 +142,16 @@ abstract class Logger(
      * like any others.
      */
     fun with(vararg fields: Pair<String, Any?>): Logger = BoundLogger(this, fields.asList())
+
+    /**
+     * Adds anything this logger contributes to the entry, e.g. bound fields. Runs before the filter.
+     */
+    internal open fun decorate(entry: LogEntry): LogEntry = entry
+
+    private fun deliver(entry: LogEntry) {
+        val e = decorate(entry)
+        if (settings.filter?.invoke(e) != false) emit(e)
+    }
 
     /**
      * Receives every entry that passed the level check and delivers it to an output, e.g. the console

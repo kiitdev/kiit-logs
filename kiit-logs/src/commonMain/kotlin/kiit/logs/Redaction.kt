@@ -52,7 +52,7 @@ data class Redaction(
     val match: KeyMatch = KeyMatch.Contains,
     val action: RedactAction = RedactAction.Mask,
     val replacement: String = "***"
-) {
+) : Redactor {
     private val normalized: List<String> = keys.map { normalize(it) }
 
     fun isSensitive(key: String): Boolean {
@@ -66,7 +66,7 @@ data class Redaction(
         }
     }
 
-    fun redact(fields: List<Pair<String, Any?>>): List<Pair<String, Any?>> = when (action) {
+    override fun redact(fields: List<Pair<String, Any?>>): List<Pair<String, Any?>> = when (action) {
         RedactAction.Mask -> fields.map { (k, v) -> if (isSensitive(k)) k to replacement else k to v }
         RedactAction.Drop -> fields.filterNot { isSensitive(it.first) }
     }

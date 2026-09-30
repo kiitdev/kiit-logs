@@ -28,9 +28,15 @@ internal class BoundLogger(
             parent.settings = value
         }
 
+    override val level: LogLevel get() = parent.level
+
     override val raw: Any? get() = parent.raw
 
+    // Parent first, so nested bound fields come out outermost first, then the call's own fields
+    override fun decorate(entry: LogEntry): LogEntry =
+        parent.decorate(entry.copy(fields = settings.redaction.redact(bound) + entry.fields))
+
     override fun emit(entry: LogEntry) {
-        parent.emit(entry.copy(fields = settings.redaction.redact(bound) + entry.fields))
+        parent.emit(entry)
     }
 }

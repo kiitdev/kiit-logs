@@ -81,7 +81,7 @@ log.info("place", "order_id" to "abc", "total" to 42)
 2. **Origin and scope.** `origin` says who owns the system, set once for the app. `scope` says where inside it, like `accounts.signup`. They mean the same thing as in kiit-codes and kiit-service-id.
 3. **Levels.** `Trace`, `Debug`, `Info`, `Warn`, `Error`, `Fatal`, and `Off`. Set the level to `Off` and nothing is logged. `Trace` is the finest level and has no shortcut method, use `logAction(LogLevel.Trace, ...)`.
 4. **Settings.** One `LogSettings` value holds the level, stack trace mode, redaction, origin, scope and clock. Level, stack traces and redaction have no defaults on the constructor, so `LogSettings.safe()` is the way in.
-5. **Redaction.** Fields whose key matches a sensitive word get their value replaced with `***`, or are dropped. Keys are compared without case, spaces, `_`, `-` or `.`, so `api_key` and `apiKey` are the same.
+5. **Redaction.** By default, fields whose key matches a sensitive word get their value replaced with `***`, or are dropped. Keys are compared without case, spaces, `_`, `-` or `.`, so `api_key` and `apiKey` are the same. To use your own rule instead, pass a `Redactor`.
 6. **Stack traces.** `Off` (the default), `Summary` (type and message, then each cause) or `Full` (cut to 50 lines by default). The exception message is always part of the log line.
 7. **Providers.** A logger sends every entry that passes the level check to `emit`. The console logger prints it. A provider extends `Logger` and does something else with it.
 
@@ -121,15 +121,31 @@ IllegalStateException: card declined
 log.debug("place") { listOf("total" to expensiveTotal()) }
 ```
 
+**Set levels by logger name.** A name covers the names under it, and the longest match wins:
+
+```kotlin
+val settings = LogSettings.safe().copy(
+    levels = mapOf("com.shop.orders" to LogLevel.Debug, "com.shop.orders.audit" to LogLevel.Warn),
+)
+// com.shop.orders.checkout -> Debug, com.shop.orders.audit.x -> Warn, com.shop.ordersX -> Error
+```
+
+**Drop entries with a filter.** Return `false` to drop one before it's emitted. It sees fields added by `with` too:
+
+```kotlin
+val settings = LogSettings.safe().copy(filter = { entry -> entry.action != "noisy" })
+```
+
 **Change the level while the app runs**, for diagnostics. It applies to loggers that already exist:
 
 ```kotlin
 logs.setLevel(LogLevel.Debug)
 ```
 
-Or change one logger:
+Or one name and the names under it, or one logger:
 
 ```kotlin
+logs.setLevel("com.shop.orders", LogLevel.Debug)
 log.settings = log.settings.copy(level = LogLevel.Debug)
 ```
 
@@ -176,6 +192,15 @@ val redaction = Redaction(
 val settings = LogSettings.safe().copy(redaction = redaction)
 ```
 
+**Replace redaction entirely** with a `Redactor`, for example to look at values:
+
+```kotlin
+val redactor = Redactor { fields ->
+    fields.map { (key, value) -> if (value is String && "@" in value) key to "<email>" else key to value }
+}
+val settings = LogSettings.safe().copy(redaction = redactor)
+```
+
 **Write a provider** by extending `Logger` and implementing `emit`. `entry.text` is a ready to print line, and `entry.fields` are the redacted pairs:
 
 ```kotlin
@@ -198,11 +223,11 @@ This is a small logger. Here is what it doesn't do.
 
 1. **Console only.** Android writes to logcat with the real level and tag, which is fine for a real app. The JVM and iOS use `println`, so the console logger is for development and tests there. iOS doesn't use `os_log` yet.
 2. **No files, rotation, async or JSON.** That's the provider's job. No provider ships yet.
-3. **Best effort redaction.** It matches on the field key. It doesn't look inside values, message text or an object's `toString()`.
+3. **Best effort redaction.** The default matches on the field key. It doesn't look inside values, message text or an object's `toString()`. A custom `Redactor` can look at values, but not the message text.
 4. **Trace ids come from elsewhere.** If you use a tracing agent, it puts the ids in the logging context and a provider such as SLF4J passes them along. kiit-logs doesn't create them or read that context. Use `log.with(...)` to attach an id yourself.
 5. **Flat fields.** Values are plain key/value pairs. There's no nesting and no schema for action names.
 6. **Levels are fixed.** There are no custom levels.
-7. **Levels are per logger.** There's no configuration by package name and no inheritance from a parent logger.
+7. **Names are strings.** A level applies to a name and the names under it, but there are no logger objects with parents.
 8. **Not 1.0.** The API is still moving.
 
 ## Requirements

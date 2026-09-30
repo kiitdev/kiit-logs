@@ -46,6 +46,12 @@ interface LogFactory {
      * should leave the wrapped library's own level wide open so it doesn't drop what passes here.
      */
     fun setLevel(level: LogLevel)
+
+    /**
+     * Changes the level for a logger name and the names under it, e.g. "com.shop.orders" also
+     * covers "com.shop.orders.checkout". A more specific name wins over a shorter one.
+     */
+    fun setLevel(name: String, level: LogLevel)
 }
 
 /**
@@ -80,7 +86,7 @@ class ConsoleLogFactory(settings: LogSettings) : LogFactory {
 
     override fun getLogger(cls: KClass<*>): Logger {
         val key = cls.qualifiedName ?: cls.simpleName ?: "console"
-        return cached(key) { ConsoleLogger(settings, name = cls.simpleName ?: "console", logType = cls) }
+        return cached(key) { ConsoleLogger(settings, name = key, logType = cls) }
     }
 
     override fun getLogger(name: String?): Logger {
@@ -93,6 +99,12 @@ class ConsoleLogFactory(settings: LogSettings) : LogFactory {
         loggers.load().values.forEach { it.settings = it.settings.copy(level = level) }
     }
 
+    override fun setLevel(name: String, level: LogLevel) {
+        val levels = settings.levels + (name to level)
+        settings = settings.copy(levels = levels)
+        loggers.load().values.forEach { it.settings = it.settings.copy(levels = levels) }
+    }
+
     private fun cached(key: String, create: () -> Logger): Logger {
         while (true) {
             val current = loggers.load()
@@ -100,8 +112,9 @@ class ConsoleLogFactory(settings: LogSettings) : LogFactory {
             val created = create()
             if (loggers.compareAndSet(current, current + (key to created))) {
                 // setLevel may have run after this logger read the settings but before it was stored
-                if (created.level != settings.level) {
-                    created.settings = created.settings.copy(level = settings.level)
+                val latest = settings
+                if (created.settings.level != latest.level || created.settings.levels != latest.levels) {
+                    created.settings = created.settings.copy(level = latest.level, levels = latest.levels)
                 }
                 return created
             }

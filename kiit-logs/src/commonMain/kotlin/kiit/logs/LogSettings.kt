@@ -26,23 +26,29 @@ import kotlinx.datetime.Clock
  *
  * @param level minimum level that is logged
  * @param stackTraces how exceptions are rendered by loggers that print them, e.g. the console
- * @param redaction which key/value fields are masked or dropped before an entry is created
+ * @param redaction which key/value fields are masked or dropped before an entry is created. [Redaction]
+ *                  is the default, pass your own [Redactor] to replace it
  * @param origin who owns the system that emits the logs, set once for the app, e.g. "shop.example.com".
  *               A domain or any other stable id. Same convention as origin in kiit-codes and
  *               kiit-service-id. Empty means unset
  * @param scope free-form label for where in the origin this is, e.g. "orders.checkout". Dots express
  *              hierarchy. Same convention as scope in kiit-codes and kiit-service-id. Empty means unset
+ * @param levels levels for logger names, e.g. "com.shop.orders" to Debug. A logger uses the longest name
+ *               that equals its name or is a prefix ending at a dot, otherwise [level]
+ * @param filter return false to drop an entry before it is emitted, e.g. to silence a noisy action
  * @param maxTraceLines cap on the lines of a full stack trace
  * @param clock supplies the time of each entry. Replace it in tests to get exact times
  */
 data class LogSettings(
     val level: LogLevel,
     val stackTraces: StackTraces,
-    val redaction: Redaction,
+    val redaction: Redactor,
     val origin: String = "",
     val scope: String = "",
     val clock: Clock = Clock.System,
-    val maxTraceLines: Int = StackTraces.DEFAULT_MAX_LINES
+    val maxTraceLines: Int = StackTraces.DEFAULT_MAX_LINES,
+    val levels: Map<String, LogLevel> = emptyMap(),
+    val filter: ((LogEntry) -> Boolean)? = null
 ) {
     companion object {
         /**

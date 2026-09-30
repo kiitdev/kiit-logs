@@ -7,7 +7,7 @@ object LogUtils {
      * NOTE: Logs can be configured to output JSON and/or provide structured arguments.
      * This varies from logging provider so this is an easier text/classic only way to do ( for now )
      */
-    fun format(pairs:List<Pair<String, Any?>>, redaction:Redaction = Redaction()):String =
+    fun format(pairs:List<Pair<String, Any?>>, redaction:Redactor = Redaction()):String =
         render(redaction.redact(pairs))
 
     /**
