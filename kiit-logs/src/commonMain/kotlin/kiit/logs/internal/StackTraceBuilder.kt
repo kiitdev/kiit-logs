@@ -18,7 +18,7 @@ import kiit.logs.StackTraces
 /**
  * Renders an exception for [StackTraces], the setting a logger uses to decide how much of it is kept.
  */
-internal object StackTraceRenderer {
+internal object StackTraceBuilder {
     // Bounds the walk so a cause cycle can't loop
     private const val MAX_CAUSES = 5
 
