@@ -34,7 +34,7 @@ class ConcurrencyTests {
 
     @Test
     fun the_factory_makes_one_logger_per_name_when_threads_race() {
-        val factory = SinkLogFactory(testSettings(), SafeSink())
+        val factory = DefaultLogFactory(testSettings(), SafeSink())
         val seen = ConcurrentHashMap<String, MutableSet<Logger>>()
         runThreads(8) {
             repeat(500) { i ->
@@ -58,7 +58,7 @@ class ConcurrencyTests {
     @Test
     fun a_level_change_while_threads_log_does_not_fail() {
         val sink = SafeSink()
-        val factory = SinkLogFactory(testSettings(), sink)
+        val factory = DefaultLogFactory(testSettings(), sink)
         val log = factory.getLogger("L")
         runThreads(6) { n ->
             repeat(500) { i ->

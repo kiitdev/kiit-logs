@@ -29,10 +29,10 @@ object Logs {
      * @param maxLength see [ConsoleSink]
      */
     fun console(settings: LogSettings, maxLength: Int = ConsoleSink.DEFAULT_MAX_LENGTH): LogFactory =
-        SinkLogFactory(settings, ConsoleSink(maxLength))
+        DefaultLogFactory(settings, ConsoleSink(maxLength))
 
     /**
-     * Loggers that send every entry to [sink], see [SinkLogFactory].
+     * Loggers that send every entry to [sink], see [DefaultLogFactory].
      */
-    fun sink(settings: LogSettings, sink: LogSink): LogFactory = SinkLogFactory(settings, sink)
+    fun sink(settings: LogSettings, sink: LogSink): LogFactory = DefaultLogFactory(settings, sink)
 }

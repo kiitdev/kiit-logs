@@ -13,7 +13,7 @@ class LogsTests {
         val sink = MemorySink()
         val settings = testSettings(LogLevel.Info)
         val factory = Logs.sink(settings, sink)
-        assertIs<SinkLogFactory>(factory)
+        assertIs<DefaultLogFactory>(factory)
         assertSame(settings, factory.settings)
 
         val log = factory.getLogger("orders")
@@ -29,7 +29,7 @@ class LogsTests {
     fun console_is_a_sink_factory_with_a_console_sink_and_the_settings() {
         val settings = testSettings()
         val factory = Logs.console(settings)
-        assertIs<SinkLogFactory>(factory)
+        assertIs<DefaultLogFactory>(factory)
         assertSame(settings, factory.settings)
         assertIs<ConsoleSink>(factory.provider)
     }

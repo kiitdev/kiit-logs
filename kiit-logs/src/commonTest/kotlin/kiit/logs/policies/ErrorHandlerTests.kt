@@ -1,12 +1,12 @@
 package kiit.logs.policies
 
+import kiit.logs.DefaultLogFactory
 import kiit.logs.FailingSink
 import kiit.logs.LogEntry
 import kiit.logs.LogLevel
 import kiit.logs.LogSettings
 import kiit.logs.Logger
 import kiit.logs.MemorySink
-import kiit.logs.SinkLogFactory
 import kiit.logs.sinks.CompositeSink
 import kiit.logs.testSettings
 import kotlin.test.Test
@@ -113,7 +113,7 @@ class ErrorHandlerTests {
         val records = mutableListOf<Recorded>()
         val settings = settings(handling(records))
         Logger(settings, "L", FailingSink()).flush()
-        val factory = SinkLogFactory(settings, FailingSink())
+        val factory = DefaultLogFactory(settings, FailingSink())
         factory.flush()
         factory.close()
         assertEquals(
