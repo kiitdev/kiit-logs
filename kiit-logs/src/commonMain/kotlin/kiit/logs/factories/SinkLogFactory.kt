@@ -16,8 +16,8 @@ package kiit.logs.factories
 import kiit.logs.LogLevel
 import kiit.logs.LogSettings
 import kiit.logs.Logger
-import kiit.logs.policies.LogStage
-import kiit.logs.policies.guard
+import kiit.logs.internal.ErrorGuard
+import kiit.logs.policies.ErrorHandler.Stage
 import kiit.logs.sinks.LogSink
 import kotlin.concurrent.Volatile
 import kotlin.concurrent.atomics.AtomicReference
@@ -67,11 +67,11 @@ open class SinkLogFactory(
     }
 
     override fun flush() {
-        settings.errors.guard(LogStage.Lifecycle, null) { sink.flush() }
+        ErrorGuard.guard(settings.errors, Stage.Lifecycle, null) { sink.flush() }
     }
 
     override fun close() {
-        settings.errors.guard(LogStage.Lifecycle, null) { sink.close() }
+        ErrorGuard.guard(settings.errors, Stage.Lifecycle, null) { sink.close() }
     }
 
     private fun cached(key: String, create: () -> Logger): Logger {

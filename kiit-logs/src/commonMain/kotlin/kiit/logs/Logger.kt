@@ -13,11 +13,11 @@
 
 package kiit.logs
 
+import kiit.logs.internal.ErrorGuard
 import kiit.logs.internal.LogState
 import kiit.logs.internal.StackTraceBuilder
-import kiit.logs.policies.LogStage
+import kiit.logs.policies.ErrorHandler.Stage
 import kiit.logs.policies.Policies
-import kiit.logs.policies.guard
 import kiit.logs.sinks.LogSink
 
 /**
@@ -82,7 +82,7 @@ class Logger private constructor(
      * Pushes out anything the sink has buffered.
      */
     fun flush() {
-        settings.errors.guard(LogStage.Lifecycle, null) { sink.flush() }
+        ErrorGuard.guard(settings.errors, Stage.Lifecycle, null) { sink.flush() }
     }
 
     // Structured logging: an action with key/value fields ( redacted by the logger's policies )
@@ -213,10 +213,10 @@ class Logger private constructor(
     private inline fun send(level: LogLevel, make: () -> LogEntry) {
         if (!isEnabled(level)) return
         val s = settings
-        val entry = s.errors.guard(LogStage.Build, null, make) ?: return
+        val entry = ErrorGuard.guard(s.errors, Stage.Build, null, make) ?: return
         // A policy that throws drops the entry, and the error is reported without it, since it may not be redacted yet
-        val delivered = s.errors.guard(LogStage.Policy, null) { Policies.applyTo(s.policies, entry) } ?: return
-        s.errors.guard(LogStage.Sink, delivered) { sink.emit(delivered) }
+        val delivered = ErrorGuard.guard(s.errors, Stage.Policy, null) { Policies.applyTo(s.policies, entry) } ?: return
+        ErrorGuard.guard(s.errors, Stage.Sink, delivered) { sink.emit(delivered) }
     }
 
     private fun build(

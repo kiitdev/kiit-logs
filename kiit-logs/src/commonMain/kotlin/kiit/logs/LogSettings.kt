@@ -13,8 +13,7 @@
 
 package kiit.logs
 
-import kiit.logs.policies.ErrorPolicy
-import kiit.logs.policies.LogErrorHandler
+import kiit.logs.policies.ErrorHandler
 import kiit.logs.policies.Policy
 import kiit.logs.policies.RedactPolicy
 import kotlinx.datetime.Clock
@@ -41,7 +40,7 @@ import kotlinx.datetime.Clock
  * @param levels levels for logger names, e.g. "com.shop.orders" to Debug. A logger uses the longest name
  *               that equals its name or is a prefix ending at a dot, otherwise [level]
  * @param maxTraceLines cap on the lines of a full stack trace
- * @param errors what happens when something in logging throws, see [ErrorPolicy]. By default the first few
+ * @param errors what happens when something in logging throws, see [ErrorHandler]. By default the first few
  *               errors are printed and logging never throws into your code
  * @param clock supplies the time of each entry. Replace it in tests to get exact times
  */
@@ -54,7 +53,7 @@ data class LogSettings(
     val clock: Clock = Clock.System,
     val maxTraceLines: Int = StackTraces.DEFAULT_MAX_LINES,
     val levels: Map<String, LogLevel> = emptyMap(),
-    val errors: ErrorPolicy = ErrorPolicy.Handle(LogErrorHandler.printing())
+    val errors: ErrorHandler = ErrorHandler.printing()
 ) {
     /**
      * The level for a logger name: the longest name in [levels] that equals it or is a prefix ending

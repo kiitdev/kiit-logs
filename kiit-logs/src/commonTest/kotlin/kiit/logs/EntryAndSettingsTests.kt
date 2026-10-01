@@ -1,6 +1,6 @@
 package kiit.logs
 
-import kiit.logs.policies.ErrorPolicy
+import kiit.logs.policies.ErrorHandler
 import kiit.logs.policies.RedactPolicy
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -41,7 +41,7 @@ class EntryAndSettingsTests {
         assertEquals(LogLevel.Error, settings.level)
         assertEquals(StackTraces.Off, settings.stackTraces)
         assertTrue(settings.policies.single() is RedactPolicy)
-        assertTrue(settings.errors is ErrorPolicy.Handle)
+        assertTrue(settings.errors !== ErrorHandler.Throw)
         assertEquals("", settings.origin)
         assertEquals("", settings.scope)
         assertTrue(settings.levels.isEmpty())

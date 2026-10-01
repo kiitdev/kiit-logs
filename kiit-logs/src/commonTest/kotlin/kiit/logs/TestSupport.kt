@@ -1,6 +1,6 @@
 package kiit.logs
 
-import kiit.logs.policies.ErrorPolicy
+import kiit.logs.policies.ErrorHandler
 import kiit.logs.sinks.LogSink
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -43,6 +43,6 @@ val fixedClock: Clock =
  * thrown so a test notices it.
  */
 fun testSettings(level: LogLevel = LogLevel.Debug): LogSettings =
-    LogSettings.safe().copy(level = level, clock = fixedClock, errors = ErrorPolicy.Propagate)
+    LogSettings.safe().copy(level = level, clock = fixedClock, errors = ErrorHandler.Throw)
 
 fun fields(vararg pairs: Pair<String, Any?>): List<Pair<String, Any?>> = pairs.asList()

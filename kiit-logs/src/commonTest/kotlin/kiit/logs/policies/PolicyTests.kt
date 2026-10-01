@@ -13,9 +13,9 @@ import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class PolicyTests {
-    private class Recorded(val stage: LogStage, val entry: LogEntry?)
+    private class Recorded(val stage: ErrorHandler.Stage, val entry: LogEntry?)
 
-    private fun handling(records: MutableList<Recorded>) = ErrorPolicy.Handle { stage, _, entry -> records.add(Recorded(stage, entry)) }
+    private fun handling(records: MutableList<Recorded>) = ErrorHandler { stage, _, entry -> records.add(Recorded(stage, entry)) }
 
     private fun adding(key: String) = Policy { it.copy(fields = it.fields + (key to true)) }
 
@@ -100,7 +100,7 @@ class PolicyTests {
             )
         Logger(settings, "L", sink).info("signup", "password" to "hunter2")
         assertTrue(sink.entries.isEmpty())
-        assertEquals(LogStage.Policy, records.single().stage)
+        assertEquals(ErrorHandler.Stage.Policy, records.single().stage)
         assertNull(records.single().entry)
     }
 
