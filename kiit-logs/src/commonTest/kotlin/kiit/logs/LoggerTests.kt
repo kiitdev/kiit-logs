@@ -2,7 +2,6 @@ package kiit.logs
 
 import kiit.logs.policies.Policy
 import kiit.logs.policies.RedactPolicy
-import kiit.logs.policies.StackTraces
 import kiit.logs.sinks.LogSink
 import kotlin.test.Test
 import kotlin.test.assertEquals

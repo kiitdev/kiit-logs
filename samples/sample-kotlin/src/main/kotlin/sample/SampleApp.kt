@@ -8,7 +8,7 @@ import kiit.logs.policies.KeyMatch
 import kiit.logs.policies.Policy
 import kiit.logs.policies.RedactAction
 import kiit.logs.policies.RedactPolicy
-import kiit.logs.policies.StackTraces
+import kiit.logs.StackTraces
 import kiit.logs.sinks.CompositeSink
 import kiit.logs.sinks.ConsoleSink
 import kiit.logs.sinks.LogSink

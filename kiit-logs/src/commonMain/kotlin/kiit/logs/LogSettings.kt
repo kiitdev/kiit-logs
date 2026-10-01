@@ -17,7 +17,6 @@ import kiit.logs.policies.ErrorPolicy
 import kiit.logs.policies.LogErrorHandler
 import kiit.logs.policies.Policy
 import kiit.logs.policies.RedactPolicy
-import kiit.logs.policies.StackTraces
 import kotlinx.datetime.Clock
 
 /**

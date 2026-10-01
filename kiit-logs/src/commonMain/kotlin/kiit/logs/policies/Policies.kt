@@ -16,7 +16,6 @@ package kiit.logs.policies
 import kiit.logs.LogEntry
 import kiit.logs.LogSettings
 
-
 /**
  * A step every entry goes through before it is delivered, e.g. redacting fields or dropping noise.
  * Return the entry to continue with, the same one or a changed copy, or null to drop it.
@@ -38,7 +37,6 @@ fun interface Policy {
         fun filter(keep: (LogEntry) -> Boolean): Policy = Policy { if (keep(it)) it else null }
     }
 }
-
 
 /**
  * Working with [Policy] lists, e.g. [LogSettings.policies][kiit.logs.LogSettings.policies].
