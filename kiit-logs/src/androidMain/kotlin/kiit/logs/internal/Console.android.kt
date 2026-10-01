@@ -1,6 +1,8 @@
-package kiit.logs
+package kiit.logs.internal
 
 import android.util.Log
+import kiit.logs.LogEntry
+import kiit.logs.LogLevel
 
 // Android before API 26 limits tags to 23 characters
 private const val MAX_TAG = 23

@@ -11,12 +11,17 @@
  *  </kiit_header>
  */
 
-package kiit.logs
+package kiit.logs.sinks
+
+import kiit.logs.LogEntry
+import kiit.logs.LogFactory
+import kiit.logs.LogSettings
+import kiit.logs.Logger
 
 /**
  * Where entries end up: the console, a wrapped library such as Logback, a file or the network.
- * This is what a provider implements. A [Logger] does the level check, the filter and redaction
- * before it calls [emit], so a sink only delivers.
+ * This is what a provider implements. A [Logger] does the level check and runs the [LogSettings.policies]
+ * ( redaction, filters ) before it calls [emit], so a sink only delivers.
  *
  * Sinks are shared by many loggers, so closing one is the job of the [LogFactory] that owns it.
  */

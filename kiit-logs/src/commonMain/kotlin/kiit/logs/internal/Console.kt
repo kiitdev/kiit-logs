@@ -11,7 +11,9 @@
  *  </kiit_header>
  */
 
-package kiit.logs
+package kiit.logs.internal
+
+import kiit.logs.LogEntry
 
 /**
  * Writes an entry to the platform console. JVM and iOS print "time [name] Level : text".

@@ -13,27 +13,39 @@
 
 package kiit.logs
 
+import kiit.logs.internal.ErrorGuard
+import kiit.logs.policies.ErrorHandler.Stage
+import kiit.logs.sinks.ConsoleSink
+import kiit.logs.sinks.LogSink
 import kotlin.concurrent.Volatile
 import kotlin.concurrent.atomics.AtomicReference
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.reflect.KClass
 
 /**
- * Creates loggers that all send to one [LogSink], and caches them by name so getLogger returns the
- * same logger for the same name. Use it to plug in your own sink and keep [setLevel]:
+ * The [LogFactory] you use: creates loggers that all send to one [LogSink], and caches them by name so
+ * getLogger returns the same logger for the same name. Settings are always passed in, there is no global state.
  *
- *     val logFactory = SinkLogFactory(LogSettings.safe(), MySink())
+ *     val logs = Logs.console(LogSettings.safe(origin = "shop.example.com"))   // print to the console
+ *     val logs = Logs(LogSettings.safe(), MySink())                            // or use your own sink
+ *     val log = logs.getLogger(OrderService::class)
+ *     logs.setLevel(LogLevel.Debug)                                            // changes every logger, at runtime
  *
+ * A provider that wraps another library, e.g. Logback, supplies a [LogSink] and the wrapped library's root
+ * object as [provider], it doesn't extend this class.
+ *
+ * @param settings given to every logger this creates, use [LogSettings.safe] for safe defaults
+ * @param sink where every logger sends its entries
  * @param provider what [LogFactory.provider] returns, the sink by default
  */
 @OptIn(ExperimentalAtomicApi::class)
-open class SinkLogFactory(
+class Logs(
     settings: LogSettings,
     private val sink: LogSink,
     override val provider: Any = sink
 ) : LogFactory {
     @Volatile
-    final override var settings: LogSettings = settings
+    override var settings: LogSettings = settings
         private set
 
     // Copy-on-write, so reads and lookups need no lock
@@ -61,11 +73,11 @@ open class SinkLogFactory(
     }
 
     override fun flush() {
-        settings.errors.guard(LogStage.Lifecycle, null) { sink.flush() }
+        ErrorGuard.guard(settings.errors, Stage.Lifecycle, null) { sink.flush() }
     }
 
     override fun close() {
-        settings.errors.guard(LogStage.Lifecycle, null) { sink.close() }
+        ErrorGuard.guard(settings.errors, Stage.Lifecycle, null) { sink.close() }
     }
 
     private fun cached(key: String, create: () -> Logger): Logger {
@@ -82,5 +94,13 @@ open class SinkLogFactory(
                 return created
             }
         }
+    }
+
+    companion object {
+        /**
+         * Loggers that print to the console. [LogFactory.provider] is the [ConsoleSink].
+         * @param maxLength see [ConsoleSink]
+         */
+        fun console(settings: LogSettings, maxLength: Int = ConsoleSink.DEFAULT_MAX_LENGTH): Logs = Logs(settings, ConsoleSink(maxLength))
     }
 }

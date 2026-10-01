@@ -1,75 +1,82 @@
-package kiit.logs
+package kiit.logs.policies
 
+import kiit.logs.Logger
+import kiit.logs.MemorySink
+import kiit.logs.fields
+import kiit.logs.testSettings
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class RedactionTests {
-    private fun masked(redaction: Redaction, vararg keys: String): List<String> =
+class RedactPolicyTests {
+    private fun masked(redaction: RedactPolicy, vararg keys: String): List<String> =
         redaction.redact(keys.map { it to "value" }).filter { it.second == redaction.replacement }.map { it.first }
 
     @Test
     fun sensitive_keys_are_masked_by_default() {
-        val result = Redaction().redact(fields("email" to "a@b.com", "plan" to "pro", "password" to "x"))
+        val result = RedactPolicy().redact(fields("email" to "a@b.com", "plan" to "pro", "password" to "x"))
         assertEquals(fields("email" to "***", "plan" to "pro", "password" to "***"), result)
     }
 
     @Test
     fun keys_are_compared_without_case_or_separators() {
         val keys = arrayOf("api_key", "apiKey", "API-KEY", "Api Key", "api.key")
-        assertEquals(keys.toList(), masked(Redaction(), *keys))
+        assertEquals(keys.toList(), masked(RedactPolicy(), *keys))
     }
 
     @Test
     fun contains_matches_a_word_inside_a_key() {
-        assertEquals(listOf("user_password"), masked(Redaction(), "user_password", "plan"))
+        assertEquals(listOf("user_password"), masked(RedactPolicy(), "user_password", "plan"))
     }
 
     @Test
     fun contains_also_matches_harmless_keys_that_hold_a_sensitive_word() {
-        assertEquals(listOf("token_count"), masked(Redaction(), "token_count", "count"))
+        assertEquals(listOf("token_count"), masked(RedactPolicy(), "token_count", "count"))
     }
 
     @Test
     fun exact_matches_the_whole_key_only() {
-        val redaction = Redaction(keys = setOf("pin"), match = KeyMatch.Exact)
+        val redaction = RedactPolicy(keys = setOf("pin"), match = KeyMatch.Exact)
         assertEquals(listOf("pin", "PIN"), masked(redaction, "pin", "pinned", "PIN", "my_pin"))
     }
 
     @Test
     fun suffix_matches_the_end_of_the_key() {
-        val redaction = Redaction(keys = setOf("token"), match = KeyMatch.Suffix)
+        val redaction = RedactPolicy(keys = setOf("token"), match = KeyMatch.Suffix)
         assertEquals(listOf("access_token", "token"), masked(redaction, "access_token", "token_count", "token"))
     }
 
     @Test
     fun drop_removes_the_field() {
-        val redaction = Redaction(action = RedactAction.Drop)
+        val redaction = RedactPolicy(action = RedactAction.Drop)
         assertEquals(fields("plan" to "pro"), redaction.redact(fields("email" to "a@b.com", "plan" to "pro")))
     }
 
     @Test
     fun the_replacement_can_be_changed() {
-        val redaction = Redaction(replacement = "<hidden>")
+        val redaction = RedactPolicy(replacement = "<hidden>")
         assertEquals(fields("email" to "<hidden>"), redaction.redact(fields("email" to "a@b.com")))
     }
 
     @Test
     fun keys_can_be_added_to_the_defaults() {
-        val redaction = Redaction(keys = Redaction.defaults + "account_no")
+        val redaction = RedactPolicy(keys = RedactPolicy.defaults + "account_no")
         assertEquals(listOf("account_no", "email"), masked(redaction, "account_no", "email", "plan"))
     }
 
     @Test
     fun the_order_of_the_fields_is_kept() {
-        val result = Redaction().redact(fields("b" to 1, "email" to "x", "a" to 2))
+        val result = RedactPolicy().redact(fields("b" to 1, "email" to "x", "a" to 2))
         assertEquals(listOf("b", "email", "a"), result.map { it.first })
     }
 
     @Test
-    fun a_custom_redactor_replaces_the_default() {
+    fun a_custom_policy_replaces_the_default_redaction() {
         val sink = MemorySink()
-        val redactor = Redactor { fields -> fields.map { (k, v) -> if (v is String && "@" in v) k to "<email>" else k to v } }
-        val log = Logger(testSettings().copy(redaction = redactor), "L", sink)
+        val policy =
+            Policy { entry ->
+                entry.copy(fields = entry.fields.map { (k, v) -> if (v is String && "@" in v) k to "<email>" else k to v })
+            }
+        val log = Logger(testSettings().copy(policies = listOf(policy)), "L", sink)
         log.info("signup", "contact" to "a@b.com", "email" to "kept?", "plan" to "pro")
         assertEquals(
             fields("contact" to "<email>", "email" to "kept?", "plan" to "pro"),
@@ -78,14 +85,14 @@ class RedactionTests {
     }
 
     @Test
-    fun a_redactor_sees_bound_and_call_fields_together() {
+    fun a_policy_sees_bound_and_call_fields_together() {
         var seen: List<String> = emptyList()
-        val redactor =
-            Redactor { fields ->
-                seen = fields.map { it.first }
-                fields
+        val policy =
+            Policy { entry ->
+                seen = entry.fields.map { it.first }
+                entry
             }
-        Logger(testSettings().copy(redaction = redactor), "L", MemorySink()).with("a" to 1).info("x", "b" to 2)
+        Logger(testSettings().copy(policies = listOf(policy)), "L", MemorySink()).with("a" to 1).info("x", "b" to 2)
         assertEquals(listOf("a", "b"), seen)
     }
 }

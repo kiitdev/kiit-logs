@@ -19,6 +19,9 @@ All Gradle commands below are run from the **repository root**.
 ./gradlew :kiit-logs:testDebugUnitTest     # Android, run on the JVM
 ./gradlew :kiit-logs:iosSimulatorArm64Test # iOS simulator, macOS only
 ./gradlew :kiit-logs:ktlintCheck :kiit-logs:detekt
+
+# Run the Kotlin sample app
+./gradlew :samples:sample-kotlin:run
 ```
 
 `ktlintFormat` fixes most formatting problems: `./gradlew :kiit-logs:ktlintFormat`.

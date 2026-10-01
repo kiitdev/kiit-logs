@@ -1,5 +1,8 @@
 package kiit.logs
 
+import kiit.logs.policies.FilterPolicy
+import kiit.logs.policies.RedactPolicy
+import kiit.logs.sinks.LogSink
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -184,7 +187,7 @@ class LoggerTests {
         val log = Logger(LogLevel.Info, "L", MemorySink())
         assertEquals(LogLevel.Info, log.level)
         assertEquals(StackTraces.Off, log.settings.stackTraces)
-        assertTrue(log.settings.redaction is Redaction)
+        assertTrue(log.settings.policies.single() is RedactPolicy)
     }
 
     @Test
@@ -241,7 +244,7 @@ class LoggerTests {
         val sink = MemorySink()
         val settings =
             testSettings().copy(
-                filter = { entry -> entry.action != "noisy" && entry.fields.none { it.first == "muted" } },
+                policies = listOf(FilterPolicy { entry -> entry.action != "noisy" && entry.fields.none { it.first == "muted" } }),
             )
         val log = Logger(settings, "L", sink)
         log.info("noisy")

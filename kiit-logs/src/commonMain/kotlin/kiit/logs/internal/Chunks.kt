@@ -11,7 +11,7 @@
  *  </kiit_header>
  */
 
-package kiit.logs
+package kiit.logs.internal
 
 /**
  * Splits text into pieces of at most [max] characters, for outputs that cut long messages, e.g. logcat.
