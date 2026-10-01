@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 rootProject.name = "kiit-logs"
 
 include(":kiit-logs")
+include(":samples:sample-kotlin")
