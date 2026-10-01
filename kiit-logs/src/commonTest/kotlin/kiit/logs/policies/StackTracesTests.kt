@@ -1,5 +1,8 @@
-package kiit.logs
+package kiit.logs.policies
 
+import kiit.logs.Logger
+import kiit.logs.MemorySink
+import kiit.logs.testSettings
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

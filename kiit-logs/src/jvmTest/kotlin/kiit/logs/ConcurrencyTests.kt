@@ -1,5 +1,6 @@
 package kiit.logs
 
+import kiit.logs.sinks.LogSink
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.test.Test

@@ -11,8 +11,11 @@
  *  </kiit_header>
  */
 
-package kiit.logs
+package kiit.logs.policies
 
+import kiit.logs.LogEntry
+import kiit.logs.LogSettings
+import kiit.logs.sinks.LogSink
 import kotlin.concurrent.Volatile
 
 /**

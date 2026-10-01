@@ -1,4 +1,4 @@
-package kiit.logs
+package kiit.logs.internal
 
 import kotlin.test.Test
 import kotlin.test.assertEquals

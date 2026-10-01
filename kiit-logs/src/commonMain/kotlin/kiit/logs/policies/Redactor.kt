@@ -11,7 +11,9 @@
  *  </kiit_header>
  */
 
-package kiit.logs
+package kiit.logs.policies
+
+import kiit.logs.LogSettings
 
 /**
  * Decides which key/value fields are masked or dropped before an entry is created. Every logger

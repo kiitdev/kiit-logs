@@ -11,7 +11,10 @@
  *  </kiit_header>
  */
 
-package kiit.logs
+package kiit.logs.sinks
+
+import kiit.logs.LogEntry
+import kiit.logs.internal.consoleWrite
 
 /**
  * Prints entries to the console: logcat on Android, standard output on the JVM and iOS.

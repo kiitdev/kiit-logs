@@ -11,7 +11,9 @@
  *  </kiit_header>
  */
 
-package kiit.logs
+package kiit.logs.policies
+
+import kiit.logs.LogEntry
 
 /**
  * How a key is compared to the sensitive [Redaction.keys]. Both are normalized first: lowercased, with

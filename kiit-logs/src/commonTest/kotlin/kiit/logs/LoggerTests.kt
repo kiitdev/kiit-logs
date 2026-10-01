@@ -1,5 +1,8 @@
 package kiit.logs
 
+import kiit.logs.policies.Redaction
+import kiit.logs.policies.StackTraces
+import kiit.logs.sinks.LogSink
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

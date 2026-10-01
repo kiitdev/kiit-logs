@@ -11,7 +11,9 @@
  *  </kiit_header>
  */
 
-package kiit.logs
+package kiit.logs.policies
+
+import kiit.logs.LogSettings
 
 /**
  * Controls how much of an exception a logger prints. Stack traces can expose internals

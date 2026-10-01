@@ -13,6 +13,8 @@
 
 package kiit.logs
 
+import kiit.logs.sinks.ConsoleSink
+
 /**
  * Creates loggers that print to the console. Simple default, use [SinkLogFactory] with your own
  * sink when you need more.

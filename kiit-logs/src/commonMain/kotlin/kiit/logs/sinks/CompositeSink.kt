@@ -11,7 +11,10 @@
  *  </kiit_header>
  */
 
-package kiit.logs
+package kiit.logs.sinks
+
+import kiit.logs.LogEntry
+import kiit.logs.policies.ErrorPolicy
 
 /**
  * Sends each entry to several sinks, e.g. the console and a crash reporter. A sink that throws

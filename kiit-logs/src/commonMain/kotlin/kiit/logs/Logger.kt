@@ -13,6 +13,11 @@
 
 package kiit.logs
 
+import kiit.logs.internal.LogState
+import kiit.logs.policies.LogStage
+import kiit.logs.policies.guard
+import kiit.logs.sinks.LogSink
+
 /**
  * A logger. Structured logging is the default style, log an action with key/value fields:
  *

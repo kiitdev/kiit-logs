@@ -11,7 +11,10 @@
  *  </kiit_header>
  */
 
-package kiit.logs
+package kiit.logs.sinks
+
+import kiit.logs.LogEntry
+import kiit.logs.LogLevel
 
 private class FilteredSink(private val sink: LogSink, private val keep: (LogEntry) -> Boolean) : LogSink {
     override fun emit(entry: LogEntry) {

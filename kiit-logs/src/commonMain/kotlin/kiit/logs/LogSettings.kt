@@ -13,6 +13,11 @@
 
 package kiit.logs
 
+import kiit.logs.policies.ErrorPolicy
+import kiit.logs.policies.LogErrorHandler
+import kiit.logs.policies.Redaction
+import kiit.logs.policies.Redactor
+import kiit.logs.policies.StackTraces
 import kotlinx.datetime.Clock
 
 /**

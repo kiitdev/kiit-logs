@@ -13,6 +13,8 @@
 
 package kiit.logs
 
+import kiit.logs.sinks.LogSink
+
 private object NoSink : LogSink {
     override fun emit(entry: LogEntry) = Unit
 }

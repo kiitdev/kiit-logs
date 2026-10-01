@@ -1,5 +1,7 @@
 package kiit.logs
 
+import kiit.logs.policies.ErrorPolicy
+import kiit.logs.sinks.LogSink
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 
