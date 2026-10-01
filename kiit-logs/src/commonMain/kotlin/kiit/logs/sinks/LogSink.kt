@@ -14,8 +14,8 @@
 package kiit.logs.sinks
 
 import kiit.logs.LogEntry
-import kiit.logs.LogFactory
 import kiit.logs.Logger
+import kiit.logs.factories.LogFactory
 
 /**
  * Where entries end up: the console, a wrapped library such as Logback, a file or the network.

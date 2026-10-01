@@ -11,8 +11,11 @@
  *  </kiit_header>
  */
 
-package kiit.logs
+package kiit.logs.factories
 
+import kiit.logs.LogLevel
+import kiit.logs.LogSettings
+import kiit.logs.Logger
 import kotlin.reflect.KClass
 
 /**

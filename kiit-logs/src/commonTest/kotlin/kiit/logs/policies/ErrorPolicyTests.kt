@@ -6,7 +6,7 @@ import kiit.logs.LogLevel
 import kiit.logs.LogSettings
 import kiit.logs.Logger
 import kiit.logs.MemorySink
-import kiit.logs.SinkLogFactory
+import kiit.logs.factories.SinkLogFactory
 import kiit.logs.sinks.CompositeSink
 import kiit.logs.testSettings
 import kotlin.test.Test

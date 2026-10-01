@@ -11,8 +11,9 @@
  *  </kiit_header>
  */
 
-package kiit.logs
+package kiit.logs.factories
 
+import kiit.logs.LogSettings
 import kiit.logs.sinks.ConsoleSink
 
 /**

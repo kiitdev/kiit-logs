@@ -1,5 +1,8 @@
 package kiit.logs
 
+import kiit.logs.factories.ConsoleLogFactory
+import kiit.logs.factories.SinkLogFactory
+import kiit.logs.factories.providerAs
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotSame
