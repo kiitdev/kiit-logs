@@ -21,7 +21,7 @@ import kiit.logs.policies.ErrorPolicy
  * doesn't stop the others. Once they have all run, the first error is thrown, with the rest attached
  * to it, so the logger's [ErrorPolicy] decides what happens.
  *
- *     val sink = CompositeSink(ConsoleSink(), remoteSink.minLevel(LogLevel.Error))
+ *     val sink = CompositeSink(ConsoleSink(), crashReporterSink)
  */
 class CompositeSink(private val sinks: List<LogSink>) : LogSink {
     constructor(vararg sinks: LogSink) : this(sinks.asList())
