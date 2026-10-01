@@ -1,7 +1,7 @@
 package kiit.logs
 
 import kiit.logs.policies.ErrorPolicy
-import kiit.logs.policies.Redaction
+import kiit.logs.policies.RedactPolicy
 import kiit.logs.policies.StackTraces
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -41,7 +41,7 @@ class EntryAndSettingsTests {
         val settings = LogSettings.safe()
         assertEquals(LogLevel.Error, settings.level)
         assertEquals(StackTraces.Off, settings.stackTraces)
-        assertTrue(settings.policies.single() is Redaction)
+        assertTrue(settings.policies.single() is RedactPolicy)
         assertTrue(settings.errors is ErrorPolicy.Handle)
         assertEquals("", settings.origin)
         assertEquals("", settings.scope)
@@ -65,6 +65,6 @@ class EntryAndSettingsTests {
     @Test
     fun the_default_redaction_covers_the_common_sensitive_keys() {
         val keys = listOf("password", "email", "phone", "token", "secret", "authorization", "cookie", "ssn", "apikey")
-        keys.forEach { assertTrue(it in Redaction.defaults, it) }
+        keys.forEach { assertTrue(it in RedactPolicy.defaults, it) }
     }
 }

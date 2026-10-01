@@ -16,7 +16,7 @@ package kiit.logs
 import kiit.logs.policies.ErrorPolicy
 import kiit.logs.policies.LogErrorHandler
 import kiit.logs.policies.Policy
-import kiit.logs.policies.Redaction
+import kiit.logs.policies.RedactPolicy
 import kiit.logs.policies.StackTraces
 import kotlinx.datetime.Clock
 
@@ -32,7 +32,7 @@ import kotlinx.datetime.Clock
  * @param level minimum level that is logged
  * @param stackTraces how exceptions are rendered by loggers that print them, e.g. the console
  * @param policies what happens to every entry before a sink gets it, in list order, e.g. redaction and
- *                 filters. [Redaction] is the default, add a [Policy.filter] after it or your own [Policy]. An
+ *                 filters. [RedactPolicy] is the default, add a [Policy.filter] after it or your own [Policy]. An
  *                 empty list delivers entries as they are
  * @param origin who owns the system that emits the logs, set once for the app, e.g. "shop.example.com".
  *               A domain or any other stable id. Same convention as origin in kiit-codes and
@@ -76,7 +76,7 @@ data class LogSettings(
             LogSettings(
                 level = LogLevel.Error,
                 stackTraces = StackTraces.Off,
-                policies = listOf(Redaction()),
+                policies = listOf(RedactPolicy()),
                 origin = origin,
                 scope = scope,
             )

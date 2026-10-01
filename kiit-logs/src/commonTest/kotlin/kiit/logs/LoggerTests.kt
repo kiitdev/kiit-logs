@@ -1,7 +1,7 @@
 package kiit.logs
 
 import kiit.logs.policies.Policy
-import kiit.logs.policies.Redaction
+import kiit.logs.policies.RedactPolicy
 import kiit.logs.policies.StackTraces
 import kiit.logs.sinks.LogSink
 import kotlin.test.Test
@@ -188,7 +188,7 @@ class LoggerTests {
         val log = Logger(LogLevel.Info, "L", MemorySink())
         assertEquals(LogLevel.Info, log.level)
         assertEquals(StackTraces.Off, log.settings.stackTraces)
-        assertTrue(log.settings.policies.single() is Redaction)
+        assertTrue(log.settings.policies.single() is RedactPolicy)
     }
 
     @Test

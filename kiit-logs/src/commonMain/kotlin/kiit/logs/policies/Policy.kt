@@ -37,15 +37,3 @@ fun interface Policy {
         fun filter(keep: (LogEntry) -> Boolean): Policy = Policy { if (keep(it)) it else null }
     }
 }
-
-/**
- * Runs the policies in order. Null if one of them dropped the entry.
- */
-internal fun List<Policy>.applyTo(entry: LogEntry): LogEntry? {
-    if (isEmpty()) return entry
-    var current = entry
-    for (policy in this) {
-        current = policy.apply(current) ?: return null
-    }
-    return current
-}

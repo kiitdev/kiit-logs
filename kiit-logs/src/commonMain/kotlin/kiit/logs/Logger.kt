@@ -15,7 +15,7 @@ package kiit.logs
 
 import kiit.logs.internal.LogState
 import kiit.logs.policies.LogStage
-import kiit.logs.policies.applyTo
+import kiit.logs.policies.Policies
 import kiit.logs.policies.guard
 import kiit.logs.sinks.LogSink
 
@@ -214,7 +214,7 @@ class Logger private constructor(
         val s = settings
         val entry = s.errors.guard(LogStage.Build, null, make) ?: return
         // A policy that throws drops the entry, and the error is reported without it, since it may not be redacted yet
-        val delivered = s.errors.guard(LogStage.Policy, null) { s.policies.applyTo(entry) } ?: return
+        val delivered = s.errors.guard(LogStage.Policy, null) { Policies.applyTo(s.policies, entry) } ?: return
         s.errors.guard(LogStage.Sink, delivered) { sink.emit(delivered) }
     }
 

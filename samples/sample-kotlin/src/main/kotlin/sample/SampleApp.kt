@@ -7,7 +7,7 @@ import kiit.logs.Logs
 import kiit.logs.policies.KeyMatch
 import kiit.logs.policies.Policy
 import kiit.logs.policies.RedactAction
-import kiit.logs.policies.Redaction
+import kiit.logs.policies.RedactPolicy
 import kiit.logs.policies.StackTraces
 import kiit.logs.sinks.CompositeSink
 import kiit.logs.sinks.ConsoleSink
@@ -86,7 +86,7 @@ fun redaction() {
 
     val custom =
         settings().copy(
-            policies = listOf(Redaction(keys = Redaction.defaults + "account_no", match = KeyMatch.Suffix, action = RedactAction.Drop)),
+            policies = listOf(RedactPolicy(keys = RedactPolicy.defaults + "account_no", match = KeyMatch.Suffix, action = RedactAction.Drop)),
         )
     Logs.console(custom).getLogger("Dropped").info("signup", *fields)
 

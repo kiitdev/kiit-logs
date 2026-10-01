@@ -59,7 +59,7 @@ class PolicyTests {
         val sink = MemorySink()
         logger(
             sink,
-            Redaction(),
+            RedactPolicy(),
             Policy {
                 seen.addAll(it.fields.map { f -> f.second })
                 it
@@ -80,10 +80,10 @@ class PolicyTests {
     @Test
     fun redaction_returns_the_same_entry_when_no_field_is_sensitive_and_a_copy_otherwise() {
         val clean = LogEntry(level = LogLevel.Info, fields = listOf("plan" to "pro"))
-        assertSame(clean, Redaction().apply(clean))
+        assertSame(clean, RedactPolicy().apply(clean))
 
         val sensitive = LogEntry(level = LogLevel.Info, fields = listOf("email" to "a@b.com"))
-        val redacted = Redaction().apply(sensitive)
+        val redacted = RedactPolicy().apply(sensitive)
         assertNotSame(sensitive, redacted)
         assertEquals("***", redacted?.fields?.single()?.second)
         assertEquals("a@b.com", sensitive.fields.single().second)
@@ -109,7 +109,7 @@ class PolicyTests {
         val sink = MemorySink()
         val settings =
             testSettings().copy(
-                policies = listOf(Redaction(), Policy { throw IllegalStateException("bug") }),
+                policies = listOf(RedactPolicy(), Policy { throw IllegalStateException("bug") }),
                 errors = handling(mutableListOf()),
             )
         Logger(settings, "L", sink).info("signup", "password" to "hunter2")
