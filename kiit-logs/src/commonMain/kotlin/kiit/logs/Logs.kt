@@ -13,9 +13,6 @@
 
 package kiit.logs
 
-import kiit.logs.factories.ConsoleLogFactory
-import kiit.logs.factories.LogFactory
-import kiit.logs.factories.SinkLogFactory
 import kiit.logs.sinks.ConsoleSink
 import kiit.logs.sinks.LogSink
 
@@ -25,15 +22,14 @@ import kiit.logs.sinks.LogSink
  *
  *     val logFactory = Logs.console(LogSettings.safe(origin = "shop.example.com"))
  *     val log = logFactory.getLogger(OrderService::class)
- *
- * The factories themselves are in `kiit.logs.factories`.
  */
 object Logs {
     /**
-     * Loggers that print to the console, see [ConsoleLogFactory].
+     * Loggers that print to the console. [LogFactory.provider] is the [ConsoleSink].
      * @param maxLength see [ConsoleSink]
      */
-    fun console(settings: LogSettings, maxLength: Int = ConsoleSink.DEFAULT_MAX_LENGTH): LogFactory = ConsoleLogFactory(settings, maxLength)
+    fun console(settings: LogSettings, maxLength: Int = ConsoleSink.DEFAULT_MAX_LENGTH): LogFactory =
+        SinkLogFactory(settings, ConsoleSink(maxLength))
 
     /**
      * Loggers that send every entry to [sink], see [SinkLogFactory].

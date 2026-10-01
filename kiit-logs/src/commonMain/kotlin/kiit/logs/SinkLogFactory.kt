@@ -11,11 +11,8 @@
  *  </kiit_header>
  */
 
-package kiit.logs.factories
+package kiit.logs
 
-import kiit.logs.LogLevel
-import kiit.logs.LogSettings
-import kiit.logs.Logger
 import kiit.logs.internal.ErrorGuard
 import kiit.logs.policies.ErrorHandler.Stage
 import kiit.logs.sinks.LogSink

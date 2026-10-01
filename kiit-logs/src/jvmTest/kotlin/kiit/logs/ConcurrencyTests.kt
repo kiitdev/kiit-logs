@@ -1,6 +1,5 @@
 package kiit.logs
 
-import kiit.logs.factories.SinkLogFactory
 import kiit.logs.sinks.LogSink
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap

@@ -1,8 +1,6 @@
 package kiit.logs
 
-import kiit.logs.factories.ConsoleLogFactory
-import kiit.logs.factories.SinkLogFactory
-import kiit.logs.factories.providerAs
+import kiit.logs.sinks.ConsoleSink
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotSame
@@ -129,8 +127,9 @@ class LevelTests {
         val sink = MemorySink()
         assertSame(sink, SinkLogFactory(testSettings(), sink).provider)
         assertEquals("root", SinkLogFactory(testSettings(), sink, "root").provider)
-        assertEquals("console", ConsoleLogFactory(testSettings()).provider)
-        assertEquals("console", ConsoleLogFactory(testSettings()).providerAs<String>())
-        assertEquals(null, ConsoleLogFactory(testSettings()).providerAs<Int>())
+        val console = Logs.console(testSettings())
+        assertTrue(console.provider is ConsoleSink)
+        assertTrue(console.providerAs<ConsoleSink>() != null)
+        assertEquals(null, console.providerAs<Int>())
     }
 }

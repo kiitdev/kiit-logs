@@ -1,7 +1,6 @@
 package kiit.logs
 
-import kiit.logs.factories.ConsoleLogFactory
-import kiit.logs.factories.SinkLogFactory
+import kiit.logs.sinks.ConsoleSink
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -27,12 +26,12 @@ class LogsTests {
     }
 
     @Test
-    fun console_is_a_console_factory_with_the_settings() {
+    fun console_is_a_sink_factory_with_a_console_sink_and_the_settings() {
         val settings = testSettings()
         val factory = Logs.console(settings)
-        assertIs<ConsoleLogFactory>(factory)
+        assertIs<SinkLogFactory>(factory)
         assertSame(settings, factory.settings)
-        assertEquals("console", factory.provider)
+        assertIs<ConsoleSink>(factory.provider)
     }
 
     @Test

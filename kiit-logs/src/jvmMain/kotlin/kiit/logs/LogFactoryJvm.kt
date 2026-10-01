@@ -1,6 +1,4 @@
-package kiit.logs.factories
-
-import kiit.logs.Logger
+package kiit.logs
 
 /**
  * Java-friendly overload of [LogFactory.getLogger] that takes a [Class].
