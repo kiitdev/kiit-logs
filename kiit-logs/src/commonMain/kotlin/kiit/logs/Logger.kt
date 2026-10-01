@@ -14,6 +14,7 @@
 package kiit.logs
 
 import kiit.logs.internal.LogState
+import kiit.logs.internal.StackTraceRenderer
 import kiit.logs.policies.LogStage
 import kiit.logs.policies.Policies
 import kiit.logs.policies.guard
@@ -236,7 +237,7 @@ class Logger private constructor(
             scope = s.scope,
             fields = bound + fields,
             time = s.clock.now(),
-            trace = ex?.let { s.stackTraces.render(it, s.maxTraceLines) },
+            trace = ex?.let { StackTraceRenderer.render(s.stackTraces, it, s.maxTraceLines) },
         )
     }
 

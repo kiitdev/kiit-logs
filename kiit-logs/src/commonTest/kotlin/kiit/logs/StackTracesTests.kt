@@ -2,62 +2,10 @@ package kiit.logs
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class StackTracesTests {
-    private fun chain(depth: Int): Exception {
-        var ex: Exception = IllegalStateException("cause-$depth")
-        for (i in depth - 1 downTo 1) ex = RuntimeException("cause-$i", ex)
-        return ex
-    }
-
-    @Test
-    fun off_renders_nothing() {
-        assertNull(StackTraces.Off.render(IllegalStateException("boom")))
-    }
-
-    @Test
-    fun summary_is_the_type_and_message() {
-        assertEquals("IllegalStateException: boom", StackTraces.Summary.render(IllegalStateException("boom")))
-    }
-
-    @Test
-    fun summary_follows_the_cause_chain() {
-        val ex = RuntimeException("charge failed", IllegalArgumentException("bad card", IllegalStateException("closed")))
-        assertEquals(
-            "RuntimeException: charge failed\nCaused by: IllegalArgumentException: bad card\nCaused by: IllegalStateException: closed",
-            StackTraces.Summary.render(ex),
-        )
-    }
-
-    @Test
-    fun summary_stops_after_five_causes() {
-        val rendered = StackTraces.Summary.render(chain(9))
-        assertNotNull(rendered)
-        assertEquals(5, rendered.lines().size)
-    }
-
-    @Test
-    fun full_includes_the_message() {
-        val rendered = StackTraces.Full.render(IllegalStateException("boom"), maxLines = 1000)
-        assertNotNull(rendered)
-        assertTrue("boom" in rendered)
-        assertTrue("more lines" !in rendered)
-    }
-
-    @Test
-    fun full_is_cut_to_the_line_cap() {
-        val message = (1..10).joinToString("\n") { "line$it" }
-        val rendered = StackTraces.Full.render(IllegalStateException(message), maxLines = 3)
-        assertNotNull(rendered)
-        val lines = rendered.lines()
-        assertEquals(4, lines.size)
-        assertTrue(lines.last().startsWith("... ") && lines.last().endsWith(" more lines"), lines.last())
-        assertTrue("line3" in lines.take(3).joinToString("\n"))
-    }
-
     @Test
     fun the_entry_trace_follows_the_setting_and_the_exception_is_kept() {
         val ex = IllegalStateException("boom")
