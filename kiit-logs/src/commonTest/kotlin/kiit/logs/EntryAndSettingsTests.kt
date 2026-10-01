@@ -5,7 +5,6 @@ import kiit.logs.policies.Redaction
 import kiit.logs.policies.StackTraces
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
@@ -42,12 +41,11 @@ class EntryAndSettingsTests {
         val settings = LogSettings.safe()
         assertEquals(LogLevel.Error, settings.level)
         assertEquals(StackTraces.Off, settings.stackTraces)
-        assertTrue(settings.redaction is Redaction)
+        assertTrue(settings.policies.single() is Redaction)
         assertTrue(settings.errors is ErrorPolicy.Handle)
         assertEquals("", settings.origin)
         assertEquals("", settings.scope)
         assertTrue(settings.levels.isEmpty())
-        assertNull(settings.filter)
         assertEquals(StackTraces.DEFAULT_MAX_LINES, settings.maxTraceLines)
     }
 

@@ -14,6 +14,7 @@
 package kiit.logs.policies
 
 import kiit.logs.LogEntry
+import kiit.logs.LogSettings
 
 /**
  * How a key is compared to the sensitive [Redaction.keys]. Both are normalized first: lowercased, with
@@ -40,8 +41,12 @@ enum class RedactAction {
 }
 
 /**
- * Redacts sensitive key/value fields before a [LogEntry] is created, so every logger and
- * provider only ever sees redacted fields.
+ * A [Policy] that redacts the sensitive key/value fields of an entry. It is the first of the default
+ * [LogSettings.policies], so every policy after it and every sink only ever sees redacted fields. To use your
+ * own rule instead, e.g. one that also looks at values, return a copy of the entry with other fields:
+ *
+ *     Policy { entry -> entry.copy(fields = entry.fields.map { (k, v) -> if (v is String && "@" in v) k to "<email>" else k to v }) }
+ *
  * NOTE: This is key-based only. Values inside message text or format arguments are not scanned.
  *
  * @param keys sensitive words, e.g. Redaction.defaults + "ssn"
@@ -54,7 +59,7 @@ data class Redaction(
     val match: KeyMatch = KeyMatch.Contains,
     val action: RedactAction = RedactAction.Mask,
     val replacement: String = "***"
-) : Redactor {
+) : Policy {
     private val normalized: List<String> = keys.map { normalize(it) }
 
     fun isSensitive(key: String): Boolean {
@@ -68,7 +73,15 @@ data class Redaction(
         }
     }
 
-    override fun redact(fields: List<Pair<String, Any?>>): List<Pair<String, Any?>> =
+    /**
+     * The same entry when no field is sensitive, otherwise a copy with the redacted fields.
+     */
+    override fun apply(entry: LogEntry): LogEntry? {
+        if (entry.fields.none { isSensitive(it.first) }) return entry
+        return entry.copy(fields = redact(entry.fields))
+    }
+
+    fun redact(fields: List<Pair<String, Any?>>): List<Pair<String, Any?>> =
         when (action) {
             RedactAction.Mask -> fields.map { (k, v) -> if (isSensitive(k)) k to replacement else k to v }
             RedactAction.Drop -> fields.filterNot { isSensitive(it.first) }

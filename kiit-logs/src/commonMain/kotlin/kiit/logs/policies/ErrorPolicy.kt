@@ -22,11 +22,11 @@ import kotlin.concurrent.Volatile
  * Where in logging something went wrong.
  */
 enum class LogStage {
-    /** Building the entry: a lazy message or fields, redaction, or rendering the stack trace. */
+    /** Building the entry: a lazy message or fields, or rendering the stack trace. */
     Build,
 
-    /** The [LogSettings.filter]. */
-    Filter,
+    /** Running the [LogSettings.policies], e.g. redaction or a filter. The error is reported without an entry. */
+    Policy,
 
     /** Delivering the entry to the [LogSink]. */
     Sink,

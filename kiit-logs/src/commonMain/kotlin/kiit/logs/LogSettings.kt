@@ -15,8 +15,8 @@ package kiit.logs
 
 import kiit.logs.policies.ErrorPolicy
 import kiit.logs.policies.LogErrorHandler
+import kiit.logs.policies.Policy
 import kiit.logs.policies.Redaction
-import kiit.logs.policies.Redactor
 import kiit.logs.policies.StackTraces
 import kotlinx.datetime.Clock
 
@@ -24,15 +24,16 @@ import kotlinx.datetime.Clock
  * Settings for a [Logger]. Passed as the primary constructor argument so new options
  * can be added here without changing every logger's constructor.
  *
- * The level, stack trace and redaction settings are required, so a logger's behavior is always
+ * The level, stack trace and policy settings are required, so a logger's behavior is always
  * a deliberate choice. Use [safe] for the safe defaults, and copy() to change one:
  *
  *     LogSettings.safe(origin = "shop.example.com").copy(level = LogLevel.Info)
  *
  * @param level minimum level that is logged
  * @param stackTraces how exceptions are rendered by loggers that print them, e.g. the console
- * @param redaction which key/value fields are masked or dropped before an entry is created. [Redaction]
- *                  is the default, pass your own [Redactor] to replace it
+ * @param policies what happens to every entry before a sink gets it, in list order, e.g. redaction and
+ *                 filters. [Redaction] is the default, add a [Policy.filter] after it or your own [Policy]. An
+ *                 empty list delivers entries as they are
  * @param origin who owns the system that emits the logs, set once for the app, e.g. "shop.example.com".
  *               A domain or any other stable id. Same convention as origin in kiit-codes and
  *               kiit-service-id. Empty means unset
@@ -40,8 +41,6 @@ import kotlinx.datetime.Clock
  *              hierarchy. Same convention as scope in kiit-codes and kiit-service-id. Empty means unset
  * @param levels levels for logger names, e.g. "com.shop.orders" to Debug. A logger uses the longest name
  *               that equals its name or is a prefix ending at a dot, otherwise [level]
- * @param filter return false to drop an entry before it is emitted, e.g. to silence a noisy action.
- *               If it throws, the error goes to [errors] and the entry is still logged
  * @param maxTraceLines cap on the lines of a full stack trace
  * @param errors what happens when something in logging throws, see [ErrorPolicy]. By default the first few
  *               errors are printed and logging never throws into your code
@@ -50,13 +49,12 @@ import kotlinx.datetime.Clock
 data class LogSettings(
     val level: LogLevel,
     val stackTraces: StackTraces,
-    val redaction: Redactor,
+    val policies: List<Policy>,
     val origin: String = "",
     val scope: String = "",
     val clock: Clock = Clock.System,
     val maxTraceLines: Int = StackTraces.DEFAULT_MAX_LINES,
     val levels: Map<String, LogLevel> = emptyMap(),
-    val filter: ((LogEntry) -> Boolean)? = null,
     val errors: ErrorPolicy = ErrorPolicy.Handle(LogErrorHandler.printing())
 ) {
     /**
@@ -78,7 +76,7 @@ data class LogSettings(
             LogSettings(
                 level = LogLevel.Error,
                 stackTraces = StackTraces.Off,
-                redaction = Redaction(),
+                policies = listOf(Redaction()),
                 origin = origin,
                 scope = scope,
             )

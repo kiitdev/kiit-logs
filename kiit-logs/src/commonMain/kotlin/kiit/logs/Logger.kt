@@ -15,6 +15,7 @@ package kiit.logs
 
 import kiit.logs.internal.LogState
 import kiit.logs.policies.LogStage
+import kiit.logs.policies.applyTo
 import kiit.logs.policies.guard
 import kiit.logs.sinks.LogSink
 
@@ -36,7 +37,7 @@ import kiit.logs.sinks.LogSink
  *
  *     log(LogLevel.Error, "payment failed", ex)
  *
- * A logger sends every entry that passes the level check and the filter to its [LogSink].
+ * A logger sends every entry that passes the level check and the [LogSettings.policies] to its [LogSink].
  */
 class Logger private constructor(
     private val state: LogState,
@@ -83,7 +84,7 @@ class Logger private constructor(
         settings.errors.guard(LogStage.Lifecycle, null) { sink.flush() }
     }
 
-    // Structured logging: an action with key/value fields ( redacted by the logger's settings )
+    // Structured logging: an action with key/value fields ( redacted by the logger's policies )
     fun debug(action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Debug, action, null, fields)
 
     fun info(action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Info, action, null, fields)
@@ -167,8 +168,8 @@ class Logger private constructor(
     }
 
     /**
-     * Logs an entry with key/value fields. Fields are redacted per [settings] before the
-     * entry is created.
+     * Logs an entry with key/value fields. Fields are redacted by the [LogSettings.policies] before
+     * the entry is delivered.
      */
     private fun logIfEnabled(
         level: LogLevel,
@@ -198,13 +199,13 @@ class Logger private constructor(
      *     val log = logger.with("trace_id" to traceId)
      *     log.info("place", "order_id" to id)   // fields: trace_id, order_id
      *
-     * It shares this logger's settings, so a level change applies to it too. The fields are redacted
+     * It shares this logger's settings, so a level change applies to it too. The fields go through the policies
      * like any others.
      */
     fun with(vararg fields: Pair<String, Any?>): Logger = Logger(state, name, sink, bound + fields.asList())
 
     /**
-     * The one path every log call takes: level check, build the entry, filter, deliver. Anything that
+     * The one path every log call takes: level check, build the entry, run the policies, deliver. Anything that
      * throws along the way goes to the [LogSettings.errors] policy, and a lazy message or field lambda
      * is only run when the level is enabled.
      */
@@ -212,8 +213,9 @@ class Logger private constructor(
         if (!isEnabled(level)) return
         val s = settings
         val entry = s.errors.guard(LogStage.Build, null, make) ?: return
-        val keep = s.errors.guard(LogStage.Filter, entry) { s.filter?.invoke(entry) != false } ?: true
-        if (keep) s.errors.guard(LogStage.Sink, entry) { sink.emit(entry) }
+        // A policy that throws drops the entry, and the error is reported without it, since it may not be redacted yet
+        val delivered = s.errors.guard(LogStage.Policy, null) { s.policies.applyTo(entry) } ?: return
+        s.errors.guard(LogStage.Sink, delivered) { sink.emit(delivered) }
     }
 
     private fun build(
@@ -232,7 +234,7 @@ class Logger private constructor(
             action = action,
             origin = s.origin,
             scope = s.scope,
-            fields = s.redaction.redact(bound + fields),
+            fields = bound + fields,
             time = s.clock.now(),
             trace = ex?.let { s.stackTraces.render(it, s.maxTraceLines) },
         )

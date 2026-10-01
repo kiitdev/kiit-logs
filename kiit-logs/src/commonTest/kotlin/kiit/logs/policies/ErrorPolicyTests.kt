@@ -12,7 +12,6 @@ import kiit.logs.testSettings
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -43,25 +42,25 @@ class ErrorPolicyTests {
     }
 
     @Test
-    fun a_redactor_that_throws_is_reported_and_the_entry_is_dropped() {
+    fun a_policy_that_throws_is_reported_without_the_entry_and_the_entry_is_dropped() {
         val records = mutableListOf<Recorded>()
         val sink = MemorySink()
-        val redactor = Redactor { throw IllegalArgumentException("redactor bug") }
-        Logger(settings(handling(records)).copy(redaction = redactor), "L", sink).info("secret", "k" to "v")
-        assertEquals(LogStage.Build, records.single().stage)
+        val policy = Policy { throw IllegalArgumentException("redaction bug") }
+        Logger(settings(handling(records)).copy(policies = listOf(policy)), "L", sink).info("secret", "k" to "v")
+        assertEquals(LogStage.Policy, records.single().stage)
         assertNull(records.single().entry)
         assertTrue(sink.entries.isEmpty())
     }
 
     @Test
-    fun a_filter_that_throws_is_reported_and_the_entry_is_still_logged() {
+    fun a_filter_that_throws_is_reported_and_the_entry_is_dropped() {
         val records = mutableListOf<Recorded>()
         val sink = MemorySink()
-        val filter: (LogEntry) -> Boolean = { throw IllegalArgumentException("filter bug") }
-        Logger(settings(handling(records)).copy(filter = filter), "L", sink).info("kept")
-        assertEquals(LogStage.Filter, records.single().stage)
-        assertNotNull(records.single().entry)
-        assertEquals(listOf("kept"), sink.entries.map { it.action })
+        val filter = Policy.filter { throw IllegalArgumentException("filter bug") }
+        Logger(settings(handling(records)).copy(policies = listOf(filter)), "L", sink).info("dropped")
+        assertEquals(LogStage.Policy, records.single().stage)
+        assertNull(records.single().entry)
+        assertTrue(sink.entries.isEmpty())
     }
 
     @Test

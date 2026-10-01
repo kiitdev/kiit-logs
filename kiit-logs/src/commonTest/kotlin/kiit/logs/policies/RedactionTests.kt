@@ -70,10 +70,13 @@ class RedactionTests {
     }
 
     @Test
-    fun a_custom_redactor_replaces_the_default() {
+    fun a_custom_policy_replaces_the_default_redaction() {
         val sink = MemorySink()
-        val redactor = Redactor { fields -> fields.map { (k, v) -> if (v is String && "@" in v) k to "<email>" else k to v } }
-        val log = Logger(testSettings().copy(redaction = redactor), "L", sink)
+        val policy =
+            Policy { entry ->
+                entry.copy(fields = entry.fields.map { (k, v) -> if (v is String && "@" in v) k to "<email>" else k to v })
+            }
+        val log = Logger(testSettings().copy(policies = listOf(policy)), "L", sink)
         log.info("signup", "contact" to "a@b.com", "email" to "kept?", "plan" to "pro")
         assertEquals(
             fields("contact" to "<email>", "email" to "kept?", "plan" to "pro"),
@@ -82,14 +85,14 @@ class RedactionTests {
     }
 
     @Test
-    fun a_redactor_sees_bound_and_call_fields_together() {
+    fun a_policy_sees_bound_and_call_fields_together() {
         var seen: List<String> = emptyList()
-        val redactor =
-            Redactor { fields ->
-                seen = fields.map { it.first }
-                fields
+        val policy =
+            Policy { entry ->
+                seen = entry.fields.map { it.first }
+                entry
             }
-        Logger(testSettings().copy(redaction = redactor), "L", MemorySink()).with("a" to 1).info("x", "b" to 2)
+        Logger(testSettings().copy(policies = listOf(policy)), "L", MemorySink()).with("a" to 1).info("x", "b" to 2)
         assertEquals(listOf("a", "b"), seen)
     }
 }

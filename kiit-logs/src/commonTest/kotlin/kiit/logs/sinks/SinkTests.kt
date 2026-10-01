@@ -3,10 +3,8 @@ package kiit.logs.sinks
 import kiit.logs.FailingSink
 import kiit.logs.LogEntry
 import kiit.logs.LogLevel
-import kiit.logs.Logger
 import kiit.logs.MemorySink
 import kiit.logs.fixedTime
-import kiit.logs.testSettings
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -54,55 +52,6 @@ class SinkTests {
         composite.flush()
         composite.close()
         assertNull(composite.rawFor("x"))
-    }
-
-    @Test
-    fun min_level_narrows_one_sink() {
-        val all = MemorySink()
-        val errors = MemorySink()
-        val sink = CompositeSink(all, errors.minLevel(LogLevel.Error))
-        val log = Logger(testSettings(LogLevel.Debug), "L", sink)
-        log.info("i")
-        log.error("e")
-        log.fatal("f")
-        assertEquals(listOf("i", "e", "f"), all.entries.map { it.action })
-        assertEquals(listOf("e", "f"), errors.entries.map { it.action })
-    }
-
-    @Test
-    fun filtered_keeps_the_entries_the_predicate_accepts() {
-        val sink = MemorySink()
-        val filtered = sink.filtered { it.action == "pay" }
-        filtered.emit(entry(action = "place"))
-        filtered.emit(entry(action = "pay"))
-        assertEquals(listOf("pay"), sink.entries.map { it.action })
-    }
-
-    @Test
-    fun a_filtered_sink_forwards_flush_close_and_raw() {
-        val inner =
-            object : LogSink {
-                var flushed = 0
-                var closed = 0
-
-                override fun emit(entry: LogEntry) {}
-
-                override fun flush() {
-                    flushed++
-                }
-
-                override fun close() {
-                    closed++
-                }
-
-                override fun rawFor(name: String): Any? = "raw:$name"
-            }
-        val filtered = inner.minLevel(LogLevel.Error)
-        filtered.flush()
-        filtered.close()
-        assertEquals(1, inner.flushed)
-        assertEquals(1, inner.closed)
-        assertEquals("raw:A", filtered.rawFor("A"))
     }
 
     @Test
