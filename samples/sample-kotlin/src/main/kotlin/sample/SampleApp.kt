@@ -132,7 +132,7 @@ class CountingSink : LogSink {
 fun sinks() {
     section("Sinks")
     val counting = CountingSink()
-    val logs = Logs.sink(settings(), CompositeSink(ConsoleSink(), counting))
+    val logs = Logs(settings(), CompositeSink(ConsoleSink(), counting))
     val log = logs.getLogger("Sinks")
     log.info("one")
     log.info("two")

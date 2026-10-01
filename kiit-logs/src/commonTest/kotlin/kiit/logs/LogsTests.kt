@@ -9,11 +9,10 @@ import kotlin.test.assertTrue
 
 class LogsTests {
     @Test
-    fun sink_uses_the_settings_and_sends_entries_to_the_sink() {
+    fun a_logs_uses_the_settings_and_sends_entries_to_the_sink() {
         val sink = MemorySink()
         val settings = testSettings(LogLevel.Info)
-        val factory = Logs.sink(settings, sink)
-        assertIs<DefaultLogFactory>(factory)
+        val factory = Logs(settings, sink)
         assertSame(settings, factory.settings)
 
         val log = factory.getLogger("orders")
@@ -26,17 +25,16 @@ class LogsTests {
     }
 
     @Test
-    fun console_is_a_sink_factory_with_a_console_sink_and_the_settings() {
+    fun console_uses_the_settings_and_a_console_sink() {
         val settings = testSettings()
         val factory = Logs.console(settings)
-        assertIs<DefaultLogFactory>(factory)
         assertSame(settings, factory.settings)
         assertIs<ConsoleSink>(factory.provider)
     }
 
     @Test
     fun getLogger_returns_the_same_logger_for_the_same_name() {
-        val factory = Logs.sink(testSettings(), MemorySink())
+        val factory = Logs(testSettings(), MemorySink())
         assertSame(factory.getLogger("a"), factory.getLogger("a"))
         assertTrue(factory.getLogger("a") !== factory.getLogger("b"))
     }
@@ -44,7 +42,7 @@ class LogsTests {
     @Test
     fun a_level_change_on_the_returned_factory_applies() {
         val sink = MemorySink()
-        val factory = Logs.sink(testSettings(LogLevel.Error), sink)
+        val factory = Logs(testSettings(LogLevel.Error), sink)
         val log = factory.getLogger("orders")
         log.info("before")
         factory.setLevel(LogLevel.Info)
@@ -53,9 +51,8 @@ class LogsTests {
     }
 
     @Test
-    fun each_call_returns_a_new_factory() {
-        val sink = MemorySink()
+    fun each_console_call_returns_a_new_factory() {
         val settings = testSettings()
-        assertTrue(Logs.sink(settings, sink) !== Logs.sink(settings, sink))
+        assertTrue(Logs.console(settings) !== Logs.console(settings))
     }
 }
