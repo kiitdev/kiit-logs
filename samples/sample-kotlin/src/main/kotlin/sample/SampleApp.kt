@@ -4,6 +4,7 @@ import kiit.logs.LogEntry
 import kiit.logs.LogLevel
 import kiit.logs.LogSettings
 import kiit.logs.Logs
+import kiit.logs.policies.FilterPolicy
 import kiit.logs.policies.KeyMatch
 import kiit.logs.policies.Policy
 import kiit.logs.policies.RedactAction
@@ -101,7 +102,7 @@ fun redaction() {
 fun policies() {
     section("Policies")
     val build = Policy { it.copy(fields = it.fields + ("build" to "sample-1")) }
-    val noHeartbeat = Policy.filter { it.action != "heartbeat" }
+    val noHeartbeat = FilterPolicy { it.action != "heartbeat" }
     val settings = settings().let { it.copy(policies = it.policies + build + noHeartbeat) }
     val log = Logs.console(settings).getLogger("Policies")
     log.info("heartbeat")

@@ -21,7 +21,7 @@ import kiit.logs.LogSettings
  * Return the entry to continue with, the same one or a changed copy, or null to drop it.
  *
  *     Policy { entry -> if (entry.action == "heartbeat") null else entry }
- *     Policy.filter { it.action != "heartbeat" }
+ *     FilterPolicy { it.action != "heartbeat" }
  *
  * The policies in [LogSettings.policies] run in list order and stop at the first null. If a policy throws, the
  * entry is dropped and the error goes to the logger's error policy, so an entry whose redaction failed is never
@@ -29,13 +29,6 @@ import kiit.logs.LogSettings
  */
 fun interface Policy {
     fun apply(entry: LogEntry): LogEntry?
-
-    companion object {
-        /**
-         * A policy that drops the entries [keep] returns false for.
-         */
-        fun filter(keep: (LogEntry) -> Boolean): Policy = Policy { if (keep(it)) it else null }
-    }
 }
 
 /**

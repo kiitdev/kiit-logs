@@ -56,7 +56,7 @@ class ErrorPolicyTests {
     fun a_filter_that_throws_is_reported_and_the_entry_is_dropped() {
         val records = mutableListOf<Recorded>()
         val sink = MemorySink()
-        val filter = Policy.filter { throw IllegalArgumentException("filter bug") }
+        val filter = FilterPolicy { throw IllegalArgumentException("filter bug") }
         Logger(settings(handling(records)).copy(policies = listOf(filter)), "L", sink).info("dropped")
         assertEquals(LogStage.Policy, records.single().stage)
         assertNull(records.single().entry)
