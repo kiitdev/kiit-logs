@@ -46,7 +46,7 @@ class LoggerTests {
         val sink = MemorySink()
         val log = testLogger(testSettings(), sink, "L")
         log.log(LogLevel.Info, "error check", IllegalStateException("testing exception message"))
-        assertEquals("error check\ntesting exception message", sink.entries.single().msg)
+        assertEquals("error check: testing exception message", sink.entries.single().msg)
     }
 
     @Test
@@ -146,7 +146,7 @@ class LoggerTests {
         log.log(LogLevel.Error, ex) { "charge failed" }
         log.log(LogLevel.Error, ex) { "" }
         log.log(LogLevel.Error, null) { "no exception" }
-        assertEquals(listOf("charge failed\nboom", "boom", "no exception"), sink.entries.map { it.msg })
+        assertEquals(listOf("charge failed: boom", "boom", "no exception"), sink.entries.map { it.msg })
         assertEquals(listOf<Throwable?>(ex, ex, null), sink.entries.map { it.ex })
     }
 

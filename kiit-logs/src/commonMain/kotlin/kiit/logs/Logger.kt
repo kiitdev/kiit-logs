@@ -137,7 +137,8 @@ class Logger private constructor(
     // Free text
 
     /**
-     * Logs a message. If there is an exception, its message is appended.
+     * Logs a message. If there is an exception, its message is appended after a colon:
+     * "payment failed: card declined".
      * @param level
      * @param msg
      * @param ex
@@ -159,12 +160,12 @@ class Logger private constructor(
         send(level) { s -> build(s, level, textWith(callback(), ex), ex, null, emptyList()) }
     }
 
-    // The message, then the exception's message on its own line when there is one
+    // The message, then the exception's message after a colon when there is one: "payment failed: card declined"
     private fun textWith(msg: String?, ex: Throwable?): String =
         when {
             ex == null -> msg
             msg.isNullOrEmpty() -> ex.message
-            else -> ex.message?.let { "$msg\n$it" } ?: msg
+            else -> ex.message?.let { "$msg: $it" } ?: msg
         } ?: ""
 
     /**
