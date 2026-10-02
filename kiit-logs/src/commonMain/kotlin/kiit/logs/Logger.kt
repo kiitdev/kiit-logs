@@ -41,6 +41,7 @@ import kiit.logs.sinks.LogSink
  *
  * A logger sends every entry that passes the level check and the [LogSettings.policies] to its [LogSink].
  */
+@Suppress("TooManyFunctions") // one method per level and style for now, to go when the logging API is consolidated
 class Logger private constructor(
     private val state: LogState,
     val name: String,
@@ -76,6 +77,11 @@ class Logger private constructor(
      * The wrapped library's logger for this logger's name, if the sink wraps one. See [LogSink.rawFor].
      */
     val raw: Any? get() = sink.rawFor(name)
+
+    /**
+     * [raw] as T, or null if there is none or it is a different type.
+     */
+    inline fun <reified T> rawAs(): T? = raw as? T
 
     /**
      * Pushes out anything the sink has buffered.
@@ -255,8 +261,3 @@ class Logger private constructor(
 
     companion object
 }
-
-/**
- * [Logger.raw] as T, or null if there is none or it is a different type.
- */
-inline fun <reified T> Logger.rawAs(): T? = raw as? T

@@ -38,7 +38,7 @@ All notable changes to kiit-logs are documented here. Format follows
   check and the policies are done before `emit`.
 - `Logs` (the old interface) is now `LogFactory`, and `LogsDefault` (an object) is `Logs.console(settings)`, with
   `Logs` as the class that implements `LogFactory`. `Provider` is no longer inherited, the wrapped library's root object is a property
-  of `LogFactory`. `getLogger(Class)` is `logger(KClass)`, with a JVM extension for `Class`.
+  of `LogFactory`. `getLogger(Class)` is `logger(KClass)`, and there is no overload that takes a `Class`.
 - The level changes at runtime through the factory, `logs.setLevel(...)`, and the change is atomic. A logger's
   `settings` can be read, not replaced.
 - The default level is `Error`. The console default was `Debug` and `Logger` was `Warn`.
