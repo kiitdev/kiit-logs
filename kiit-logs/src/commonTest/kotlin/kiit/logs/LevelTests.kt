@@ -46,7 +46,7 @@ class LevelTests {
 
     @Test
     fun a_logger_resolves_its_level_at_creation_and_when_settings_change() {
-        val log = Logger(byName, "com.shop.orders.checkout", MemorySink())
+        val log = testLogger(byName, MemorySink(), "com.shop.orders.checkout")
         assertEquals(LogLevel.Debug, log.level)
         log.settings = byName.copy(levels = emptyMap())
         assertEquals(LogLevel.Error, log.level)

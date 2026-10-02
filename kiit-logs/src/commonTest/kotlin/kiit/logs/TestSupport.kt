@@ -46,3 +46,8 @@ fun testSettings(level: LogLevel = LogLevel.Debug): LogSettings =
     LogSettings.safe().copy(level = level, clock = fixedClock, errors = ErrorHandler.Throw)
 
 fun fields(vararg pairs: Pair<String, Any?>): List<Pair<String, Any?>> = pairs.asList()
+
+/**
+ * A logger for a test, made the way users make one: from a [Logs]. It follows that factory's settings.
+ */
+fun testLogger(settings: LogSettings, sink: LogSink, name: String = "L"): Logger = Logs(settings, sink).logger(name)

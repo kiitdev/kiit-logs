@@ -33,6 +33,15 @@ class LogsTests {
     }
 
     @Test
+    fun console_without_settings_uses_the_safe_defaults() {
+        val logs = Logs.console()
+        assertEquals(LogSettings.safe().level, logs.settings.level)
+        assertEquals(LogLevel.Error, logs.logger("app").level)
+        logs.setLevel(LogLevel.Debug)
+        assertEquals(LogLevel.Debug, logs.logger("app").level)
+    }
+
+    @Test
     fun logger_returns_the_same_logger_for_the_same_name() {
         val factory = Logs(testSettings(), MemorySink())
         assertSame(factory.logger("a"), factory.logger("a"))

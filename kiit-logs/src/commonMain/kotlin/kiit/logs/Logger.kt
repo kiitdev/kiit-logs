@@ -47,21 +47,9 @@ class Logger private constructor(
     private val sink: LogSink,
     private val bound: List<Pair<String, Any?>>
 ) {
-    /**
-     * A logger with its own settings. It is not connected to a [Logs], so [Logs.setLevel] doesn't change it.
-     * Use [Logs.logger] for loggers that follow level changes.
-     */
-    constructor(settings: LogSettings, name: String, sink: LogSink) :
-        this(LogState(settings, name), name, sink, emptyList())
-
-    // For the loggers of a factory, which all read the settings the factory holds
+    // Loggers come from a [Logs], which gives all of its loggers the one settings reference it holds
     internal constructor(source: SettingsRef, name: String, sink: LogSink) :
         this(LogState(source, name), name, sink, emptyList())
-
-    /**
-     * Convenience constructor for when only the level is customized.
-     */
-    constructor(level: LogLevel, name: String, sink: LogSink) : this(LogSettings.safe().copy(level = level), name, sink)
 
     /**
      * The current settings, for reading. The level is the one setting that can change while the app runs, and

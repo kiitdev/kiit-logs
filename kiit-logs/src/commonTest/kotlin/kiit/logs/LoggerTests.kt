@@ -13,7 +13,7 @@ class LoggerTests {
     @Test
     fun structured_entry_has_action_fields_origin_scope_and_time() {
         val sink = MemorySink()
-        val log = Logger(testSettings().copy(origin = "shop.example.com", scope = "orders"), "OrderService", sink)
+        val log = testLogger(testSettings().copy(origin = "shop.example.com", scope = "orders"), sink, "OrderService")
         log.info("place", "order_id" to "abc", "total" to 42)
 
         val entry = sink.entries.single()
@@ -33,7 +33,7 @@ class LoggerTests {
     fun structured_entry_with_an_exception_uses_its_message_and_keeps_it() {
         val sink = MemorySink()
         val ex = IllegalStateException("card declined")
-        Logger(testSettings(), "Payments", sink).error("charge", ex, "order_id" to "abc")
+        testLogger(testSettings(), sink, "Payments").error("charge", ex, "order_id" to "abc")
 
         val entry = sink.entries.single()
         assertEquals("card declined", entry.msg)
@@ -44,7 +44,7 @@ class LoggerTests {
     @Test
     fun free_text_appends_the_exception_message() {
         val sink = MemorySink()
-        val log = Logger(testSettings(), "L", sink)
+        val log = testLogger(testSettings(), sink, "L")
         log.log(LogLevel.Info, "error check", IllegalStateException("testing exception message"))
         assertEquals("error check\ntesting exception message", sink.entries.single().msg)
     }
@@ -52,14 +52,14 @@ class LoggerTests {
     @Test
     fun free_text_with_only_an_exception_uses_its_message() {
         val sink = MemorySink()
-        Logger(testSettings(), "L", sink).log(LogLevel.Info, null, IllegalStateException("testing exception message"))
+        testLogger(testSettings(), sink, "L").log(LogLevel.Info, null, IllegalStateException("testing exception message"))
         assertEquals("testing exception message", sink.entries.single().msg)
     }
 
     @Test
     fun free_text_without_an_exception_is_the_message() {
         val sink = MemorySink()
-        Logger(testSettings(), "L", sink).log(LogLevel.Warn, "payment slow")
+        testLogger(testSettings(), sink, "L").log(LogLevel.Warn, "payment slow")
         val entry = sink.entries.single()
         assertEquals("payment slow", entry.msg)
         assertNull(entry.action)
@@ -68,7 +68,7 @@ class LoggerTests {
     @Test
     fun each_level_method_logs_at_its_level() {
         val sink = MemorySink()
-        val log = Logger(testSettings(LogLevel.Trace), "L", sink)
+        val log = testLogger(testSettings(LogLevel.Trace), sink, "L")
         log.logAction(LogLevel.Trace, "t", null, emptyArray())
         log.debug("d")
         log.info("i")
@@ -86,7 +86,7 @@ class LoggerTests {
         val all = listOf(LogLevel.Debug, LogLevel.Info, LogLevel.Warn, LogLevel.Error, LogLevel.Fatal)
         all.forEach { min ->
             val sink = MemorySink()
-            val log = Logger(testSettings(min), "L", sink)
+            val log = testLogger(testSettings(min), sink, "L")
             log.debug("d")
             log.info("i")
             log.warn("w")
@@ -101,7 +101,7 @@ class LoggerTests {
     fun trace_is_below_debug() {
         assertTrue(LogLevel.Trace < LogLevel.Debug)
         val sink = MemorySink()
-        val log = Logger(testSettings(LogLevel.Debug), "L", sink)
+        val log = testLogger(testSettings(LogLevel.Debug), sink, "L")
         log.logAction(LogLevel.Trace, "t", null, emptyArray())
         assertTrue(sink.entries.isEmpty())
     }
@@ -109,20 +109,20 @@ class LoggerTests {
     @Test
     fun off_logs_nothing_and_is_never_enabled() {
         val sink = MemorySink()
-        val log = Logger(testSettings(LogLevel.Off), "L", sink)
+        val log = testLogger(testSettings(LogLevel.Off), sink, "L")
         log.fatal("f")
         log.log(LogLevel.Fatal, "text")
         assertTrue(sink.entries.isEmpty())
         val levels = listOf(LogLevel.Trace, LogLevel.Debug, LogLevel.Info, LogLevel.Warn, LogLevel.Error, LogLevel.Fatal, LogLevel.Off)
         levels.forEach { assertFalse(log.isEnabled(it), it.name) }
-        assertFalse(Logger(testSettings(LogLevel.Trace), "L", sink).isEnabled(LogLevel.Off))
+        assertFalse(testLogger(testSettings(LogLevel.Trace), sink, "L").isEnabled(LogLevel.Off))
     }
 
     @Test
     fun a_lazy_message_is_only_built_when_the_level_is_enabled() {
         val sink = MemorySink()
         var calls = 0
-        val log = Logger(testSettings(LogLevel.Info), "L", sink)
+        val log = testLogger(testSettings(LogLevel.Info), sink, "L")
         log.log(LogLevel.Debug) {
             calls++
             "built"
@@ -142,7 +142,7 @@ class LoggerTests {
     fun a_lazy_message_with_an_exception_appends_its_message_and_keeps_the_exception() {
         val sink = MemorySink()
         val ex = IllegalStateException("boom")
-        val log = Logger(testSettings(LogLevel.Info), "L", sink)
+        val log = testLogger(testSettings(LogLevel.Info), sink, "L")
         log.log(LogLevel.Error, ex) { "charge failed" }
         log.log(LogLevel.Error, ex) { "" }
         log.log(LogLevel.Error, null) { "no exception" }
@@ -154,7 +154,7 @@ class LoggerTests {
     fun a_lazy_message_with_an_exception_is_not_built_when_the_level_is_disabled() {
         var calls = 0
         val sink = MemorySink()
-        Logger(testSettings(LogLevel.Error), "L", sink).log(LogLevel.Info, IllegalStateException("boom")) {
+        testLogger(testSettings(LogLevel.Error), sink, "L").log(LogLevel.Info, IllegalStateException("boom")) {
             calls++
             "built"
         }
@@ -166,7 +166,7 @@ class LoggerTests {
     fun the_lazy_and_eager_messages_are_built_the_same_way() {
         val sink = MemorySink()
         val ex = IllegalStateException("boom")
-        val log = Logger(testSettings(LogLevel.Info), "L", sink)
+        val log = testLogger(testSettings(LogLevel.Info), sink, "L")
         log.log(LogLevel.Error, "charge failed", ex)
         log.log(LogLevel.Error, ex) { "charge failed" }
         assertEquals(sink.entries[0].msg, sink.entries[1].msg)
@@ -175,7 +175,7 @@ class LoggerTests {
     @Test
     fun one_call_uses_one_snapshot_of_the_settings() {
         val sink = MemorySink()
-        val log = Logger(testSettings().copy(origin = "before"), "L", sink)
+        val log = testLogger(testSettings().copy(origin = "before"), sink, "L")
         // The lambda runs during the call, so this changes the settings in the middle of it
         log.log(LogLevel.Info) {
             log.settings = log.settings.copy(origin = "after")
@@ -188,7 +188,7 @@ class LoggerTests {
     @Test
     fun a_settings_change_during_a_call_applies_to_the_next_call() {
         val sink = MemorySink()
-        val log = Logger(testSettings(), "L", sink)
+        val log = testLogger(testSettings(), sink, "L")
         log.log(LogLevel.Info) {
             log.settings = log.settings.copy(policies = listOf(FilterPolicy { false }))
             "first"
@@ -201,7 +201,7 @@ class LoggerTests {
     fun lazy_fields_are_only_built_when_the_level_is_enabled() {
         val sink = MemorySink()
         var calls = 0
-        val log = Logger(testSettings(LogLevel.Info), "L", sink)
+        val log = testLogger(testSettings(LogLevel.Info), sink, "L")
         log.debug("place") {
             calls++
             fields("total" to 42)
@@ -223,7 +223,7 @@ class LoggerTests {
     fun lazy_fields_with_an_exception() {
         val sink = MemorySink()
         val ex = IllegalStateException("boom")
-        Logger(testSettings(), "L", sink).error("charge", ex) { fields("a" to 1) }
+        testLogger(testSettings(), sink, "L").error("charge", ex) { fields("a" to 1) }
         val entry = sink.entries.single()
         assertEquals(ex, entry.ex)
         assertEquals("boom", entry.msg)
@@ -233,7 +233,7 @@ class LoggerTests {
     @Test
     fun the_level_can_be_changed_at_runtime() {
         val sink = MemorySink()
-        val log = Logger(testSettings(LogLevel.Error), "L", sink)
+        val log = testLogger(testSettings(LogLevel.Error), sink, "L")
         log.info("hidden")
         log.settings = log.settings.copy(level = LogLevel.Info)
         log.info("shown")
@@ -243,7 +243,7 @@ class LoggerTests {
 
     @Test
     fun the_level_constructor_uses_safe_settings_with_that_level() {
-        val log = Logger(LogLevel.Info, "L", MemorySink())
+        val log = testLogger(testSettings(LogLevel.Info), MemorySink(), "L")
         assertEquals(LogLevel.Info, log.level)
         assertEquals(StackTraces.Off, log.settings.stackTraces)
         assertTrue(log.settings.policies.single() is RedactPolicy)
@@ -252,7 +252,7 @@ class LoggerTests {
     @Test
     fun bound_fields_come_first_in_order_and_are_redacted() {
         val sink = MemorySink()
-        val log = Logger(testSettings(), "L", sink)
+        val log = testLogger(testSettings(), sink, "L")
         log.with("trace_id" to "t-1").with("password" to "secret").info("place", "order_id" to "abc")
 
         assertEquals(
@@ -264,7 +264,7 @@ class LoggerTests {
     @Test
     fun with_does_not_change_the_logger_it_came_from() {
         val sink = MemorySink()
-        val log = Logger(testSettings(), "L", sink)
+        val log = testLogger(testSettings(), sink, "L")
         log.with("trace_id" to "t-1")
         log.info("plain")
         assertTrue(sink.entries.single().fields.isEmpty())
@@ -273,7 +273,7 @@ class LoggerTests {
     @Test
     fun a_bound_logger_follows_a_settings_change_on_its_parent() {
         val sink = MemorySink()
-        val log = Logger(testSettings(LogLevel.Info), "L", sink)
+        val log = testLogger(testSettings(LogLevel.Info), sink, "L")
         val bound = log.with("k" to 1)
         log.settings = log.settings.copy(level = LogLevel.Off)
         bound.error("hidden")
@@ -293,7 +293,7 @@ class LoggerTests {
 
                 override fun rawFor(name: String): Any? = "raw:$name"
             }
-        val bound = Logger(testSettings(), "com.shop.A", sink).with("k" to 1)
+        val bound = testLogger(testSettings(), sink, "com.shop.A").with("k" to 1)
         assertEquals("com.shop.A", bound.name)
         assertEquals("raw:com.shop.A", bound.raw)
     }
@@ -305,7 +305,7 @@ class LoggerTests {
             testSettings().copy(
                 policies = listOf(FilterPolicy { entry -> entry.action != "noisy" && entry.fields.none { it.first == "muted" } }),
             )
-        val log = Logger(settings, "L", sink)
+        val log = testLogger(settings, sink, "L")
         log.info("noisy")
         log.info("kept")
         log.with("muted" to true).info("hidden")
@@ -329,19 +329,19 @@ class LoggerTests {
 
                 override fun rawFor(name: String): Any? = "raw:$name"
             }
-        val a = Logger(testSettings(), "A", sink)
-        val b = Logger(testSettings(), "B", sink)
+        val a = testLogger(testSettings(), sink, "A")
+        val b = testLogger(testSettings(), sink, "B")
         assertEquals("raw:A", a.raw)
         assertEquals("raw:B", b.raw)
         assertEquals("raw:A", a.rawAs<String>())
         assertNull(a.rawAs<Int>())
-        assertNull(Logger(testSettings(), "C", MemorySink()).raw)
+        assertNull(testLogger(testSettings(), MemorySink(), "C").raw)
     }
 
     @Test
     fun flush_goes_to_the_sink() {
         val sink = MemorySink()
-        Logger(testSettings(), "L", sink).flush()
+        testLogger(testSettings(), sink, "L").flush()
         assertEquals(1, sink.flushed)
     }
 }

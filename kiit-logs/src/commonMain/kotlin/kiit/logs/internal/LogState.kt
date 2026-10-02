@@ -24,8 +24,6 @@ import kotlin.concurrent.Volatile
  * applies to all of them at once.
  */
 internal class LogState(private val source: SettingsRef, private val name: String) {
-    constructor(settings: LogSettings, name: String) : this(SettingsRef(settings), name)
-
     // Worked out again only when the settings were replaced, not on every call. The settings and the level in
     // it always belong together, so the settings are read once
     @Volatile

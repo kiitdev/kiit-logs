@@ -2,8 +2,8 @@ package kiit.logs.policies
 
 import kiit.logs.LogEntry
 import kiit.logs.LogLevel
-import kiit.logs.Logger
 import kiit.logs.MemorySink
+import kiit.logs.testLogger
 import kiit.logs.testSettings
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -19,7 +19,7 @@ class PolicyTests {
 
     private fun adding(key: String) = Policy { it.copy(fields = it.fields + (key to true)) }
 
-    private fun logger(sink: MemorySink, vararg policies: Policy) = Logger(testSettings().copy(policies = policies.asList()), "L", sink)
+    private fun logger(sink: MemorySink, vararg policies: Policy) = testLogger(testSettings().copy(policies = policies.asList()), sink, "L")
 
     @Test
     fun policies_run_in_list_order() {
@@ -98,7 +98,7 @@ class PolicyTests {
                 policies = listOf(Policy { throw IllegalStateException("redaction bug") }),
                 errors = handling(records),
             )
-        Logger(settings, "L", sink).info("signup", "password" to "hunter2")
+        testLogger(settings, sink, "L").info("signup", "password" to "hunter2")
         assertTrue(sink.entries.isEmpty())
         assertEquals(ErrorHandler.Stage.Policy, records.single().stage)
         assertNull(records.single().entry)
@@ -112,7 +112,7 @@ class PolicyTests {
                 policies = listOf(RedactPolicy(), Policy { throw IllegalStateException("bug") }),
                 errors = handling(mutableListOf()),
             )
-        Logger(settings, "L", sink).info("signup", "password" to "hunter2")
+        testLogger(settings, sink, "L").info("signup", "password" to "hunter2")
         assertTrue(sink.entries.isEmpty())
     }
 }

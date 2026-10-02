@@ -89,6 +89,7 @@ class Logs(
          * Loggers that print to the console. [LogFactory.provider] is the [ConsoleSink].
          * @param maxLength see [ConsoleSink]
          */
-        fun console(settings: LogSettings, maxLength: Int = ConsoleSink.DEFAULT_MAX_LENGTH): Logs = Logs(settings, ConsoleSink(maxLength))
+        fun console(settings: LogSettings = LogSettings.safe(), maxLength: Int = ConsoleSink.DEFAULT_MAX_LENGTH): Logs =
+            Logs(settings, ConsoleSink(maxLength))
     }
 }

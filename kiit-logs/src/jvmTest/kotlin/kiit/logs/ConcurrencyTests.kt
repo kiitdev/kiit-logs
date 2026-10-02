@@ -50,7 +50,7 @@ class ConcurrencyTests {
     @Test
     fun every_entry_arrives_when_many_threads_log() {
         val sink = SafeSink()
-        val log = Logger(testSettings(), "L", sink)
+        val log = testLogger(testSettings(), sink, "L")
         runThreads(8) { n -> repeat(250) { log.info("place", "thread" to n) } }
         assertEquals(2000, sink.entries.size)
     }
