@@ -55,31 +55,47 @@ class LevelTests {
     @Test
     fun the_factory_returns_the_same_logger_for_the_same_name() {
         val factory = Logs(testSettings(), MemorySink())
-        assertSame(factory.getLogger("A"), factory.getLogger("A"))
-        assertNotSame(factory.getLogger("A"), factory.getLogger("B"))
+        assertSame(factory.logger("A"), factory.logger("A"))
+        assertNotSame(factory.logger("A"), factory.logger("B"))
     }
 
     @Test
     fun a_logger_for_a_class_is_named_after_the_class() {
         val factory = Logs(testSettings(), MemorySink())
         val expected = LevelTests::class.qualifiedName ?: LevelTests::class.simpleName
-        assertEquals(expected, factory.getLogger(LevelTests::class).name)
-        assertSame(factory.getLogger(LevelTests::class), factory.getLogger(LevelTests::class))
+        assertEquals(expected, factory.logger(LevelTests::class).name)
+        assertSame(factory.logger(LevelTests::class), factory.logger(LevelTests::class))
     }
 
     @Test
-    fun a_missing_name_is_console() {
-        assertEquals("console", Logs(testSettings(), MemorySink()).getLogger(null).name)
+    fun a_missing_name_is_root() {
+        val logs = Logs(testSettings(), MemorySink())
+        assertEquals("root", LogFactory.DEFAULT_NAME)
+        assertEquals("root", logs.logger(null).name)
+        assertEquals("root", logs.logger().name)
+    }
+
+    @Test
+    fun no_name_and_null_give_the_same_logger() {
+        val logs = Logs(testSettings(), MemorySink())
+        assertSame(logs.logger(), logs.logger(null))
+        assertNotSame(logs.logger(), logs.logger(""))
+    }
+
+    @Test
+    fun a_class_without_a_name_gets_the_root_logger() {
+        val logs = Logs(testSettings(), MemorySink())
+        assertSame(logs.logger(), logs.logger(object {}::class))
     }
 
     @Test
     fun set_level_reaches_existing_and_new_loggers() {
         val sink = MemorySink()
         val factory = Logs(testSettings(LogLevel.Error), sink)
-        val existing = factory.getLogger("A")
+        val existing = factory.logger("A")
         factory.setLevel(LogLevel.Debug)
         assertEquals(LogLevel.Debug, existing.level)
-        assertEquals(LogLevel.Debug, factory.getLogger("B").level)
+        assertEquals(LogLevel.Debug, factory.logger("B").level)
         assertEquals(LogLevel.Debug, factory.settings.level)
         existing.debug("now shown")
         assertEquals(1, sink.entries.size)
@@ -88,12 +104,12 @@ class LevelTests {
     @Test
     fun set_level_by_name_covers_the_names_under_it_for_existing_and_new_loggers() {
         val factory = Logs(testSettings(LogLevel.Error), MemorySink())
-        val existing = factory.getLogger("com.shop.orders.checkout")
-        val other = factory.getLogger("com.other")
+        val existing = factory.logger("com.shop.orders.checkout")
+        val other = factory.logger("com.other")
         factory.setLevel("com.shop.orders", LogLevel.Debug)
         assertEquals(LogLevel.Debug, existing.level)
         assertEquals(LogLevel.Error, other.level)
-        assertEquals(LogLevel.Debug, factory.getLogger("com.shop.orders.audit").level)
+        assertEquals(LogLevel.Debug, factory.logger("com.shop.orders.audit").level)
     }
 
     @Test
@@ -101,15 +117,15 @@ class LevelTests {
         val factory = Logs(testSettings(LogLevel.Error), MemorySink())
         factory.setLevel("com.shop", LogLevel.Debug)
         factory.setLevel(LogLevel.Warn)
-        assertEquals(LogLevel.Debug, factory.getLogger("com.shop.orders").level)
-        assertEquals(LogLevel.Warn, factory.getLogger("com.other").level)
+        assertEquals(LogLevel.Debug, factory.logger("com.shop.orders").level)
+        assertEquals(LogLevel.Warn, factory.logger("com.other").level)
     }
 
     @Test
     fun a_logger_created_after_the_settings_have_the_named_levels() {
         val factory = Logs(byName, MemorySink())
-        assertEquals(LogLevel.Debug, factory.getLogger("com.shop.orders.x").level)
-        assertEquals(LogLevel.Warn, factory.getLogger("com.shop.orders.audit.x").level)
+        assertEquals(LogLevel.Debug, factory.logger("com.shop.orders.x").level)
+        assertEquals(LogLevel.Warn, factory.logger("com.shop.orders.audit.x").level)
     }
 
     @Test

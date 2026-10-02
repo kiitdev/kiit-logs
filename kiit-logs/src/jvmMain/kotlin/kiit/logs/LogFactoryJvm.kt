@@ -1,6 +1,6 @@
 package kiit.logs
 
 /**
- * Java-friendly overload of [LogFactory.getLogger] that takes a [Class].
+ * Java-friendly overload of [LogFactory.logger] that takes a [Class].
  */
-fun LogFactory.getLogger(cls: Class<*>): Logger = getLogger(cls.kotlin)
+fun LogFactory.logger(cls: Class<*>): Logger = logger(cls.kotlin)

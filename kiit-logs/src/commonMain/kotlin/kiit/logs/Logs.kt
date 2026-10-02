@@ -24,11 +24,11 @@ import kotlin.reflect.KClass
 
 /**
  * The [LogFactory] you use: creates loggers that all send to one [LogSink], and caches them by name so
- * getLogger returns the same logger for the same name. Settings are always passed in, there is no global state.
+ * logger(name) returns the same logger for the same name. Settings are always passed in, there is no global state.
  *
  *     val logs = Logs.console(LogSettings.safe(origin = "shop.example.com"))   // print to the console
  *     val logs = Logs(LogSettings.safe(), MySink())                            // or use your own sink
- *     val log = logs.getLogger(OrderService::class)
+ *     val log = logs.logger(OrderService::class)
  *     logs.setLevel(LogLevel.Debug)                                            // changes every logger, at runtime
  *
  * A provider that wraps another library, e.g. Logback, supplies a [LogSink] and the wrapped library's root
@@ -51,13 +51,13 @@ class Logs(
     // Copy-on-write, so reads and lookups need no lock
     private val loggers = AtomicReference<Map<String, Logger>>(emptyMap())
 
-    override fun getLogger(cls: KClass<*>): Logger {
-        val key = cls.qualifiedName ?: cls.simpleName ?: "console"
+    override fun logger(cls: KClass<*>): Logger {
+        val key = cls.qualifiedName ?: cls.simpleName ?: LogFactory.DEFAULT_NAME
         return cached(key) { Logger(settings, key, sink) }
     }
 
-    override fun getLogger(name: String?): Logger {
-        val key = name ?: "console"
+    override fun logger(name: String?): Logger {
+        val key = name ?: LogFactory.DEFAULT_NAME
         return cached(key) { Logger(settings, key, sink) }
     }
 

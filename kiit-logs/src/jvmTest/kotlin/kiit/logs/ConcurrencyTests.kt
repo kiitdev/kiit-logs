@@ -39,7 +39,7 @@ class ConcurrencyTests {
         runThreads(8) {
             repeat(500) { i ->
                 val name = "n${i % 20}"
-                seen.computeIfAbsent(name) { ConcurrentHashMap.newKeySet() }.add(factory.getLogger(name))
+                seen.computeIfAbsent(name) { ConcurrentHashMap.newKeySet() }.add(factory.logger(name))
                 if (i % 50 == 0) factory.setLevel(LogLevel.Info)
             }
         }
@@ -59,7 +59,7 @@ class ConcurrencyTests {
     fun a_level_change_while_threads_log_does_not_fail() {
         val sink = SafeSink()
         val factory = Logs(testSettings(), sink)
-        val log = factory.getLogger("L")
+        val log = factory.logger("L")
         runThreads(6) { n ->
             repeat(500) { i ->
                 if (n == 0 && i % 25 == 0) factory.setLevel(if (i % 50 == 0) LogLevel.Off else LogLevel.Debug)

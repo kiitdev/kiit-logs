@@ -36,7 +36,7 @@ private fun expensive() = 6 * 7
 // An action plus key/value fields: what was attempted, then the values that matter
 fun structured() {
     section("Structured logging")
-    val log = Logs.console(settings()).getLogger("OrderService")
+    val log = Logs.console(settings()).logger("OrderService")
     log.info("place", "order_id" to "abc", "total" to 42)
     log.warn("place", "order_id" to "abc", "reason" to "low stock")
     // The fields lambda only runs when Debug is enabled
@@ -46,7 +46,7 @@ fun structured() {
 // Free text is also supported, with log(level, ...)
 fun freeText() {
     section("Free text")
-    val log = Logs.console(settings()).getLogger("Free")
+    val log = Logs.console(settings()).logger("Free")
     log.log(LogLevel.Info, "app started")
     log.log(LogLevel.Error, "payment failed", IllegalStateException("card declined"))
     log.log(LogLevel.Debug, "cache") { "hits=${expensive()}" }
@@ -56,8 +56,8 @@ fun freeText() {
 fun levels() {
     section("Levels")
     val logs = Logs.console(settings(LogLevel.Warn))
-    val orders = logs.getLogger("shop.orders")
-    val card = logs.getLogger("shop.payments.card")
+    val orders = logs.logger("shop.orders")
+    val card = logs.logger("shop.payments.card")
 
     orders.info("before", "note" to "Info is below Warn, not printed")
     logs.setLevel("shop.payments", LogLevel.Debug)
@@ -71,7 +71,7 @@ fun levels() {
 // A logger that adds fixed fields to every entry, e.g. one request
 fun boundFields() {
     section("Bound fields")
-    val log = Logs.console(settings()).getLogger("Request")
+    val log = Logs.console(settings()).logger("Request")
     val request = log.with("trace_id" to "t-123")
     request.info("place", "order_id" to "abc")
     request.info("pay", "order_id" to "abc")
@@ -82,20 +82,20 @@ fun redaction() {
     section("Redaction")
     val fields = arrayOf("email" to "a@b.com", "account_no" to "1234", "plan" to "pro")
 
-    val byDefault = Logs.console(settings()).getLogger("Default")
+    val byDefault = Logs.console(settings()).logger("Default")
     byDefault.info("signup", *fields)
 
     val custom =
         settings().copy(
             policies = listOf(RedactPolicy(keys = RedactPolicy.defaults + "account_no", match = KeyMatch.Suffix, action = RedactAction.Drop)),
         )
-    Logs.console(custom).getLogger("Dropped").info("signup", *fields)
+    Logs.console(custom).logger("Dropped").info("signup", *fields)
 
     val values =
         Policy { entry ->
             entry.copy(fields = entry.fields.map { (k, v) -> if (v is String && "@" in v) k to "<email>" else k to v })
         }
-    Logs.console(settings().copy(policies = listOf(values))).getLogger("ByValue").info("signup", *fields)
+    Logs.console(settings().copy(policies = listOf(values))).logger("ByValue").info("signup", *fields)
 }
 
 // Policies run in list order for every entry. Return the entry, a changed copy, or null to drop it
@@ -104,7 +104,7 @@ fun policies() {
     val build = Policy { it.copy(fields = it.fields + ("build" to "sample-1")) }
     val noHeartbeat = FilterPolicy { it.action != "heartbeat" }
     val settings = settings().let { it.copy(policies = it.policies + build + noHeartbeat) }
-    val log = Logs.console(settings).getLogger("Policies")
+    val log = Logs.console(settings).logger("Policies")
     log.info("heartbeat")
     log.info("place", "order_id" to "abc", "password" to "hunter2")
 }
@@ -115,7 +115,7 @@ fun stackTraces() {
     val ex = IllegalStateException("outer", IllegalArgumentException("inner"))
     listOf(StackTraces.Off, StackTraces.Summary, StackTraces.Full).forEach { mode ->
         println("-- $mode")
-        val log = Logs.console(settings().copy(stackTraces = mode, maxTraceLines = 3)).getLogger("Traces")
+        val log = Logs.console(settings().copy(stackTraces = mode, maxTraceLines = 3)).logger("Traces")
         log.error("place", ex, "order_id" to "abc")
     }
 }
@@ -133,7 +133,7 @@ fun sinks() {
     section("Sinks")
     val counting = CountingSink()
     val logs = Logs(settings(), CompositeSink(ConsoleSink(), counting))
-    val log = logs.getLogger("Sinks")
+    val log = logs.logger("Sinks")
     log.info("one")
     log.info("two")
     println("the custom sink got ${counting.count} entries")
@@ -143,7 +143,7 @@ fun sinks() {
 // Hold a logger in a class
 fun service() {
     section("A service with a logger")
-    val users = UserService(Logs.console(settings()).getLogger(UserService::class))
+    val users = UserService(Logs.console(settings()).logger(UserService::class))
     users.register("a@b.com", "hunter2")
     users.register("a@b.com", "hunter2")
     users.login("a@b.com", "wrong")
