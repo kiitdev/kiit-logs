@@ -144,29 +144,29 @@ class Logger private constructor(
      * @param ex
      */
     fun log(level: LogLevel, msg: String?, ex: Throwable? = null) {
-        send(level) {
-            val text =
-                when {
-                    ex == null -> msg
-                    msg.isNullOrEmpty() -> ex.message
-                    else -> ex.message?.let { "$msg\n$it" } ?: msg
-                }
-            build(level, text ?: "", ex, null, emptyList())
-        }
+        send(level) { build(level, textWith(msg, ex), ex, null, emptyList()) }
     }
 
     /**
-     * Logs a message that is only built if the level is enabled
+     * Logs a message that is only built if the level is enabled, with an exception if there is one. The
+     * exception's message is appended, as in the other [log]:
      *
-     * log(LogLevel.Debug, "updating user") { " some expensive message to build" }
+     *     log(LogLevel.Debug) { "cache ${expensive()}" }
+     *     log(LogLevel.Error, ex) { "charge ${expensive()}" }
+     *
+     * Details that should be searchable are better as fields, see [debug] with a lambda of fields.
      */
-    fun log(level: LogLevel, msg: String? = null, callback: () -> String) {
-        logIfEnabled(level, msg, callback)
+    fun log(level: LogLevel, ex: Throwable? = null, callback: () -> String) {
+        send(level) { build(level, textWith(callback(), ex), ex, null, emptyList()) }
     }
 
-    private fun logIfEnabled(level: LogLevel, msg: String?, callback: () -> String) {
-        send(level) { build(level, "${msg ?: ""} : ${callback()}", null, null, emptyList()) }
-    }
+    // The message, then the exception's message on its own line when there is one
+    private fun textWith(msg: String?, ex: Throwable?): String =
+        when {
+            ex == null -> msg
+            msg.isNullOrEmpty() -> ex.message
+            else -> ex.message?.let { "$msg\n$it" } ?: msg
+        } ?: ""
 
     /**
      * Logs an entry with key/value fields. Fields are redacted by the [LogSettings.policies] before

@@ -69,7 +69,7 @@ class ErrorHandlerTests {
         val sink = MemorySink()
         val log = Logger(settings(handling(records)), "L", sink)
         log.info("place") { throw IllegalArgumentException("fields bug") }
-        log.log(LogLevel.Info, "label") { throw IllegalArgumentException("message bug") }
+        log.log(LogLevel.Info) { throw IllegalArgumentException("message bug") }
         assertEquals(listOf(ErrorHandler.Stage.Build, ErrorHandler.Stage.Build), records.map { it.stage })
         assertTrue(sink.entries.isEmpty())
     }
@@ -79,7 +79,7 @@ class ErrorHandlerTests {
         val records = mutableListOf<Recorded>()
         val log = Logger(settings(handling(records)), "L", FailingSink())
         log.debug("place") { throw IllegalArgumentException("must not run") }
-        log.log(LogLevel.Debug, "label") { throw IllegalArgumentException("must not run") }
+        log.log(LogLevel.Debug) { throw IllegalArgumentException("must not run") }
         assertTrue(records.isEmpty())
     }
 

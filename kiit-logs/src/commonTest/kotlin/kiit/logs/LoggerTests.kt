@@ -123,19 +123,53 @@ class LoggerTests {
         val sink = MemorySink()
         var calls = 0
         val log = Logger(testSettings(LogLevel.Info), "L", sink)
-        log.log(LogLevel.Debug, "label") {
+        log.log(LogLevel.Debug) {
             calls++
             "built"
         }
         assertEquals(0, calls)
         assertTrue(sink.entries.isEmpty())
 
-        log.log(LogLevel.Info, "label") {
+        log.log(LogLevel.Info) {
             calls++
             "built"
         }
         assertEquals(1, calls)
-        assertEquals("label : built", sink.entries.single().msg)
+        assertEquals("built", sink.entries.single().msg)
+    }
+
+    @Test
+    fun a_lazy_message_with_an_exception_appends_its_message_and_keeps_the_exception() {
+        val sink = MemorySink()
+        val ex = IllegalStateException("boom")
+        val log = Logger(testSettings(LogLevel.Info), "L", sink)
+        log.log(LogLevel.Error, ex) { "charge failed" }
+        log.log(LogLevel.Error, ex) { "" }
+        log.log(LogLevel.Error, null) { "no exception" }
+        assertEquals(listOf("charge failed\nboom", "boom", "no exception"), sink.entries.map { it.msg })
+        assertEquals(listOf<Throwable?>(ex, ex, null), sink.entries.map { it.ex })
+    }
+
+    @Test
+    fun a_lazy_message_with_an_exception_is_not_built_when_the_level_is_disabled() {
+        var calls = 0
+        val sink = MemorySink()
+        Logger(testSettings(LogLevel.Error), "L", sink).log(LogLevel.Info, IllegalStateException("boom")) {
+            calls++
+            "built"
+        }
+        assertEquals(0, calls)
+        assertTrue(sink.entries.isEmpty())
+    }
+
+    @Test
+    fun the_lazy_and_eager_messages_are_built_the_same_way() {
+        val sink = MemorySink()
+        val ex = IllegalStateException("boom")
+        val log = Logger(testSettings(LogLevel.Info), "L", sink)
+        log.log(LogLevel.Error, "charge failed", ex)
+        log.log(LogLevel.Error, ex) { "charge failed" }
+        assertEquals(sink.entries[0].msg, sink.entries[1].msg)
     }
 
     @Test

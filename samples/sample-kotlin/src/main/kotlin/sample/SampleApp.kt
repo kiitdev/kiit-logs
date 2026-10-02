@@ -49,7 +49,7 @@ fun freeText() {
     val log = Logs.console(settings()).logger("Free")
     log.log(LogLevel.Info, "app started")
     log.log(LogLevel.Error, "payment failed", IllegalStateException("card declined"))
-    log.log(LogLevel.Debug, "cache") { "hits=${expensive()}" }
+    log.log(LogLevel.Debug) { "cache hits=${expensive()}" }
 }
 
 // One level for everything, a level per logger name, and changing both while the app runs
