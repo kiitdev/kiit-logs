@@ -67,4 +67,17 @@ class ConcurrencyTests {
             }
         }
     }
+
+    @Test
+    fun level_changes_by_name_from_many_threads_are_all_kept() {
+        val factory = Logs(testSettings(LogLevel.Error), SafeSink())
+        val names = (0 until 8).flatMap { n -> (0 until 100).map { i -> "t$n.n$i" } }
+        // Loggers that exist before the changes
+        names.forEach { factory.logger(it) }
+        runThreads(8) { n ->
+            repeat(100) { i -> factory.setLevel("t$n.n$i", LogLevel.Debug) }
+        }
+        assertEquals(names.size, factory.settings.levels.size)
+        names.forEach { assertEquals(LogLevel.Debug, factory.logger(it).level, it) }
+    }
 }
