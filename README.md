@@ -245,7 +245,7 @@ logs.close()     // flush and release it, all loggers of the Logs share it
 
 `ConsoleSink` has nothing to flush or close, because it doesn't buffer.
 
-The level check and the policies happen before `emit`, so a sink that wraps another library should leave that library's own level wide open. Otherwise it may drop entries that already passed. `Logger.raw` and `LogFactory.provider` give you the wrapped objects if you need them.
+The level check and the policies happen before `emit`, so a sink that wraps another library should leave that library's own level wide open. Otherwise it may drop entries that already passed. `Logger.raw` and `LogFactory.raw` give you the wrapped objects if you need them, and `rawAs<T>()` casts them for you.
 
 **Send to more than one place.** `CompositeSink` gives each entry to every sink. A sink that throws doesn't stop the others:
 

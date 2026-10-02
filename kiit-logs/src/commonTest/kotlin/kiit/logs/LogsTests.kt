@@ -29,7 +29,7 @@ class LogsTests {
         val settings = testSettings()
         val factory = Logs.console(settings)
         assertSame(settings, factory.settings)
-        assertIs<ConsoleSink>(factory.provider)
+        assertIs<ConsoleSink>(factory.raw)
     }
 
     @Test

@@ -32,17 +32,17 @@ import kotlin.reflect.KClass
  *     logs.setLevel(LogLevel.Debug)                                            // changes every logger, at runtime
  *
  * A provider that wraps another library, e.g. Logback, supplies a [LogSink] and the wrapped library's root
- * object as [provider], it doesn't extend this class.
+ * object as [raw], it doesn't extend this class.
  *
  * @param settings given to every logger this creates, use [LogSettings.safe] for safe defaults
  * @param sink where every logger sends its entries
- * @param provider what [LogFactory.provider] returns, the sink by default
+ * @param raw what [LogFactory.raw] returns, the sink by default
  */
 @OptIn(ExperimentalAtomicApi::class)
 class Logs(
     settings: LogSettings,
     private val sink: LogSink,
-    override val provider: Any = sink
+    override val raw: Any = sink
 ) : LogFactory {
     private val current = SettingsRef(settings)
 
@@ -86,7 +86,7 @@ class Logs(
 
     companion object {
         /**
-         * Loggers that print to the console. [LogFactory.provider] is the [ConsoleSink].
+         * Loggers that print to the console. [LogFactory.raw] is the [ConsoleSink].
          * @param maxLength see [ConsoleSink]
          */
         fun console(settings: LogSettings = LogSettings.safe(), maxLength: Int = ConsoleSink.DEFAULT_MAX_LENGTH): Logs =

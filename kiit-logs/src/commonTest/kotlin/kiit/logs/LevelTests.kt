@@ -139,13 +139,13 @@ class LevelTests {
     }
 
     @Test
-    fun the_provider_defaults_to_the_sink_and_can_be_given() {
+    fun the_raw_object_defaults_to_the_sink_and_can_be_given() {
         val sink = MemorySink()
-        assertSame(sink, Logs(testSettings(), sink).provider)
-        assertEquals("root", Logs(testSettings(), sink, "root").provider)
+        assertSame(sink, Logs(testSettings(), sink).raw)
+        assertEquals("root", Logs(testSettings(), sink, "root").raw)
         val console = Logs.console(testSettings())
-        assertTrue(console.provider is ConsoleSink)
-        assertTrue(console.providerAs<ConsoleSink>() != null)
-        assertEquals(null, console.providerAs<Int>())
+        assertTrue(console.raw is ConsoleSink)
+        assertTrue(console.rawAs<ConsoleSink>() != null)
+        assertEquals(null, console.rawAs<Int>())
     }
 }

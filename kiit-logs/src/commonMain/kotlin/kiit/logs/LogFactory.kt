@@ -29,7 +29,7 @@ interface LogFactory {
      * reconfigured or shut down. It is Any because the wrapped types are platform specific and
      * can't be named in common code. Use [Logger.raw] for the wrapped logger itself.
      */
-    val provider: Any
+    val raw: Any
 
     /**
      * The logger for a name. No name and null both give the logger named [DEFAULT_NAME].
@@ -77,6 +77,6 @@ interface LogFactory {
 }
 
 /**
- * [LogFactory.provider] as T, or null if it is a different type.
+ * [LogFactory.raw] as T, or null if it is a different type.
  */
-inline fun <reified T> LogFactory.providerAs(): T? = provider as? T
+inline fun <reified T> LogFactory.rawAs(): T? = raw as? T
