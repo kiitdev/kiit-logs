@@ -25,7 +25,7 @@ All notable changes to kiit-logs are documented here. Format follows
 - `Logs`, the `LogFactory` you use: `Logs.console(settings)` and `Logs(settings, sink)`. It creates loggers with
   `logger(name)` and `logger(cls)`, caches them by name, and has `setLevel` (global or by name), `flush` and `close`.
   `Logs.console()` uses `LogSettings.safe()`. A logger without a name is named `root` (`LogFactory.DEFAULT_NAME`).
-- `Logger.with(...)` to add fields to every entry, `NoLogger`, `LogLevel.Trace` and `LogLevel.Off`.
+- `Logger.with(...)` to add fields to every entry, `NoLogger`, `LogLevel.Verbose` (the finest level, with `verbose(...)` methods) and `LogLevel.Off`.
 - Android writes to logcat with the real priority and tag, and splits long entries (default 4000 characters).
 - A Kotlin sample app in `samples/sample-kotlin`, run with `./gradlew :samples:sample-kotlin:run`.
 

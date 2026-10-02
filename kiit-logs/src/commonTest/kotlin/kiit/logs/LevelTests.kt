@@ -15,7 +15,7 @@ class LevelTests {
 
     @Test
     fun levels_are_ordered() {
-        val ordered = listOf(LogLevel.Trace, LogLevel.Debug, LogLevel.Info, LogLevel.Warn, LogLevel.Error, LogLevel.Fatal, LogLevel.Off)
+        val ordered = listOf(LogLevel.Verbose, LogLevel.Debug, LogLevel.Info, LogLevel.Warn, LogLevel.Error, LogLevel.Fatal, LogLevel.Off)
         assertEquals(ordered, ordered.sortedBy { it.code })
         assertTrue(LogLevel.Fatal < LogLevel.Off)
     }

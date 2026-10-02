@@ -68,15 +68,15 @@ class LoggerTests {
     @Test
     fun each_level_method_logs_at_its_level() {
         val sink = MemorySink()
-        val log = testLogger(testSettings(LogLevel.Trace), sink, "L")
-        log.logAction(LogLevel.Trace, "t", null, emptyArray())
+        val log = testLogger(testSettings(LogLevel.Verbose), sink, "L")
+        log.verbose("v")
         log.debug("d")
         log.info("i")
         log.warn("w")
         log.error("e")
         log.fatal("f")
         assertEquals(
-            listOf(LogLevel.Trace, LogLevel.Debug, LogLevel.Info, LogLevel.Warn, LogLevel.Error, LogLevel.Fatal),
+            listOf(LogLevel.Verbose, LogLevel.Debug, LogLevel.Info, LogLevel.Warn, LogLevel.Error, LogLevel.Fatal),
             sink.entries.map { it.level },
         )
     }
@@ -98,12 +98,45 @@ class LoggerTests {
     }
 
     @Test
-    fun trace_is_below_debug() {
-        assertTrue(LogLevel.Trace < LogLevel.Debug)
+    fun verbose_is_below_debug() {
+        assertTrue(LogLevel.Verbose < LogLevel.Debug)
         val sink = MemorySink()
         val log = testLogger(testSettings(LogLevel.Debug), sink, "L")
-        log.logAction(LogLevel.Trace, "t", null, emptyArray())
+        log.verbose("v", "k" to 1)
+        log.verbose("v", IllegalStateException("boom"), "k" to 1)
+        log.verbose("v") { listOf("k" to 1) }
         assertTrue(sink.entries.isEmpty())
+    }
+
+    @Test
+    fun verbose_has_the_same_three_forms_as_the_other_levels() {
+        val sink = MemorySink()
+        val ex = IllegalStateException("boom")
+        val log = testLogger(testSettings(LogLevel.Verbose), sink, "L")
+        log.verbose("plain", "k" to 1)
+        log.verbose("with_exception", ex, "k" to 2)
+        log.verbose("lazy", ex) { listOf("k" to 3) }
+        assertEquals(listOf("plain", "with_exception", "lazy"), sink.entries.map { it.action })
+        assertEquals(listOf(LogLevel.Verbose, LogLevel.Verbose, LogLevel.Verbose), sink.entries.map { it.level })
+        assertEquals(listOf<Throwable?>(null, ex, ex), sink.entries.map { it.ex })
+        assertEquals(listOf(1, 2, 3), sink.entries.map { it.fields.single().second })
+    }
+
+    @Test
+    fun lazy_verbose_fields_are_only_built_when_verbose_is_enabled() {
+        var calls = 0
+        val sink = MemorySink()
+        testLogger(testSettings(LogLevel.Debug), sink, "L").verbose("v") {
+            calls++
+            listOf("k" to 1)
+        }
+        assertEquals(0, calls)
+        testLogger(testSettings(LogLevel.Verbose), sink, "L").verbose("v") {
+            calls++
+            listOf("k" to 1)
+        }
+        assertEquals(1, calls)
+        assertEquals(1, sink.entries.size)
     }
 
     @Test
@@ -113,9 +146,9 @@ class LoggerTests {
         log.fatal("f")
         log.log(LogLevel.Fatal, "text")
         assertTrue(sink.entries.isEmpty())
-        val levels = listOf(LogLevel.Trace, LogLevel.Debug, LogLevel.Info, LogLevel.Warn, LogLevel.Error, LogLevel.Fatal, LogLevel.Off)
+        val levels = listOf(LogLevel.Verbose, LogLevel.Debug, LogLevel.Info, LogLevel.Warn, LogLevel.Error, LogLevel.Fatal, LogLevel.Off)
         levels.forEach { assertFalse(log.isEnabled(it), it.name) }
-        assertFalse(testLogger(testSettings(LogLevel.Trace), sink, "L").isEnabled(LogLevel.Off))
+        assertFalse(testLogger(testSettings(LogLevel.Verbose), sink, "L").isEnabled(LogLevel.Off))
     }
 
     @Test

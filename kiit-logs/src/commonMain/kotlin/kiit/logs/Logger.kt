@@ -85,6 +85,8 @@ class Logger private constructor(
     }
 
     // Structured logging: an action with key/value fields ( redacted by the logger's policies )
+    fun verbose(action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Verbose, action, null, fields)
+
     fun debug(action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Debug, action, null, fields)
 
     fun info(action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Info, action, null, fields)
@@ -96,6 +98,8 @@ class Logger private constructor(
     fun fatal(action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Fatal, action, null, fields)
 
     // Structured logging with an exception
+    fun verbose(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Verbose, action, ex, fields)
+
     fun debug(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Debug, action, ex, fields)
 
     fun info(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Info, action, ex, fields)
@@ -107,6 +111,9 @@ class Logger private constructor(
     fun fatal(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Fatal, action, ex, fields)
 
     // Structured logging, lazy: fields are only built if the level is enabled
+    fun verbose(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) =
+        logIfEnabled(LogLevel.Verbose, action, ex, fields)
+
     fun debug(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) =
         logIfEnabled(LogLevel.Debug, action, ex, fields)
 
