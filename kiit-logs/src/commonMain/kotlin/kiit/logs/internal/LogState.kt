@@ -20,18 +20,28 @@ import kotlin.concurrent.Volatile
 
 /**
  * The settings of a logger and the level worked out from them. A logger and the loggers made from it
- * with [Logger.with] share one, so a change applies to all of them.
+ * with [Logger.with] share one, and the loggers of one factory share the same [SettingsRef], so a change
+ * applies to all of them at once.
  */
-internal class LogState(settings: LogSettings, private val name: String) {
+internal class LogState(private val source: SettingsRef, private val name: String) {
+    // Worked out again only when the settings were replaced, not on every call. The settings and the level in
+    // it always belong together, so the settings are read once
     @Volatile
-    var settings: LogSettings = settings
-        set(value) {
-            field = value
-            level = value.levelFor(name)
+    private var worked: Worked = source.get().let { Worked(it, it.levelFor(name)) }
+
+    var settings: LogSettings
+        get() = source.get()
+        set(value) = source.set(value)
+
+    val level: LogLevel
+        get() {
+            val current = source.get()
+            val known = worked
+            if (known.settings === current) return known.level
+            val fresh = Worked(current, current.levelFor(name))
+            worked = fresh
+            return fresh.level
         }
 
-    // Worked out once per settings change, not on every call
-    @Volatile
-    var level: LogLevel = settings.levelFor(name)
-        private set
+    private class Worked(val settings: LogSettings, val level: LogLevel)
 }

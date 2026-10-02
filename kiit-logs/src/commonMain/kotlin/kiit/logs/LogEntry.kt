@@ -11,8 +11,8 @@
 
 package kiit.logs
 
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 /**
  * @param name logger name, e.g. the class

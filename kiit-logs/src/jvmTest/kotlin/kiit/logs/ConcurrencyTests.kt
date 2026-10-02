@@ -39,7 +39,7 @@ class ConcurrencyTests {
         runThreads(8) {
             repeat(500) { i ->
                 val name = "n${i % 20}"
-                seen.computeIfAbsent(name) { ConcurrentHashMap.newKeySet() }.add(factory.getLogger(name))
+                seen.computeIfAbsent(name) { ConcurrentHashMap.newKeySet() }.add(factory.logger(name))
                 if (i % 50 == 0) factory.setLevel(LogLevel.Info)
             }
         }
@@ -50,7 +50,7 @@ class ConcurrencyTests {
     @Test
     fun every_entry_arrives_when_many_threads_log() {
         val sink = SafeSink()
-        val log = Logger(testSettings(), "L", sink)
+        val log = testLogger(testSettings(), sink, "L")
         runThreads(8) { n -> repeat(250) { log.info("place", "thread" to n) } }
         assertEquals(2000, sink.entries.size)
     }
@@ -59,12 +59,25 @@ class ConcurrencyTests {
     fun a_level_change_while_threads_log_does_not_fail() {
         val sink = SafeSink()
         val factory = Logs(testSettings(), sink)
-        val log = factory.getLogger("L")
+        val log = factory.logger("L")
         runThreads(6) { n ->
             repeat(500) { i ->
                 if (n == 0 && i % 25 == 0) factory.setLevel(if (i % 50 == 0) LogLevel.Off else LogLevel.Debug)
                 log.info("x")
             }
         }
+    }
+
+    @Test
+    fun level_changes_by_name_from_many_threads_are_all_kept() {
+        val factory = Logs(testSettings(LogLevel.Error), SafeSink())
+        val names = (0 until 8).flatMap { n -> (0 until 100).map { i -> "t$n.n$i" } }
+        // Loggers that exist before the changes
+        names.forEach { factory.logger(it) }
+        runThreads(8) { n ->
+            repeat(100) { i -> factory.setLevel("t$n.n$i", LogLevel.Debug) }
+        }
+        assertEquals(names.size, factory.settings.levels.size)
+        names.forEach { assertEquals(LogLevel.Debug, factory.logger(it).level, it) }
     }
 }

@@ -13,6 +13,7 @@
 
 package kiit.logs
 
+import kiit.logs.internal.SettingsRef
 import kiit.logs.sinks.LogSink
 
 private object NoSink : LogSink {
@@ -23,4 +24,4 @@ private object NoSink : LogSink {
  * A logger that discards everything. Use it where logging is optional, instead of a null logger,
  * e.g. class OrderService(private val log: Logger = NoLogger)
  */
-val NoLogger: Logger = Logger(LogSettings.safe().copy(level = LogLevel.Off), "none", NoSink)
+val NoLogger: Logger = Logger(SettingsRef(LogSettings.safe().copy(level = LogLevel.Off)), "none", NoSink)

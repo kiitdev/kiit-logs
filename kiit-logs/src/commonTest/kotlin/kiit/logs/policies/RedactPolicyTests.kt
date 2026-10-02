@@ -1,8 +1,8 @@
 package kiit.logs.policies
 
-import kiit.logs.Logger
 import kiit.logs.MemorySink
 import kiit.logs.fields
+import kiit.logs.testLogger
 import kiit.logs.testSettings
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -76,7 +76,7 @@ class RedactPolicyTests {
             Policy { entry ->
                 entry.copy(fields = entry.fields.map { (k, v) -> if (v is String && "@" in v) k to "<email>" else k to v })
             }
-        val log = Logger(testSettings().copy(policies = listOf(policy)), "L", sink)
+        val log = testLogger(testSettings().copy(policies = listOf(policy)), sink, "L")
         log.info("signup", "contact" to "a@b.com", "email" to "kept?", "plan" to "pro")
         assertEquals(
             fields("contact" to "<email>", "email" to "kept?", "plan" to "pro"),
@@ -92,7 +92,7 @@ class RedactPolicyTests {
                 seen = entry.fields.map { it.first }
                 entry
             }
-        Logger(testSettings().copy(policies = listOf(policy)), "L", MemorySink()).with("a" to 1).info("x", "b" to 2)
+        testLogger(testSettings().copy(policies = listOf(policy)), MemorySink(), "L").with("a" to 1).info("x", "b" to 2)
         assertEquals(listOf("a", "b"), seen)
     }
 }

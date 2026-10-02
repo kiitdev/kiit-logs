@@ -21,7 +21,11 @@ import kiit.logs.LogSettings
  * spaces, `_`, `-` and `.` removed, so "api_key", "api-key" and "apiKey" are the same key.
  */
 enum class KeyMatch {
-    /** Key contains a sensitive word, e.g. "user_password" matches "password". */
+    /**
+     * Key contains a sensitive word, e.g. "user_password" matches "password". This is the default because it
+     * errs on the side of hiding too much: "password_confirm" is masked, and so are harmless keys such as
+     * "token_count". Use [Suffix] or [Exact] for a precise list.
+     */
     Contains,
 
     /** Key equals a sensitive word. */

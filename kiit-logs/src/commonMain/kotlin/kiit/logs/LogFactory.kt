@@ -29,11 +29,18 @@ interface LogFactory {
      * reconfigured or shut down. It is Any because the wrapped types are platform specific and
      * can't be named in common code. Use [Logger.raw] for the wrapped logger itself.
      */
-    val provider: Any
+    val raw: Any
 
-    fun getLogger(name: String? = ""): Logger
+    /**
+     * The logger for a name. No name and null both give the logger named [DEFAULT_NAME].
+     */
+    fun logger(name: String? = DEFAULT_NAME): Logger
 
-    fun getLogger(cls: KClass<*>): Logger
+    /**
+     * The logger for a class, named by its qualified name. A class that has none, e.g. an anonymous object,
+     * gets the logger named [DEFAULT_NAME].
+     */
+    fun logger(cls: KClass<*>): Logger
 
     /**
      * Changes the level at runtime, e.g. to Debug for diagnostics. Applies to loggers already
@@ -60,9 +67,16 @@ interface LogFactory {
      * the loggers of a factory, so this is here and not on a single logger.
      */
     fun close()
+
+    companion object {
+        /**
+         * The name of the logger when there is no name, like the root logger of other logging libraries.
+         */
+        const val DEFAULT_NAME = "root"
+    }
 }
 
 /**
- * [LogFactory.provider] as T, or null if it is a different type.
+ * [LogFactory.raw] as T, or null if it is a different type.
  */
-inline fun <reified T> LogFactory.providerAs(): T? = provider as? T
+inline fun <reified T> LogFactory.rawAs(): T? = raw as? T

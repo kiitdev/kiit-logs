@@ -9,33 +9,45 @@ All notable changes to kiit-logs are documented here. Format follows
 ### Added
 - Extracted from the Kiit monorepo (`kiit.common.log`, commit `c2bf883`) as its own standalone
   Kotlin Multiplatform module for JVM, Android and iOS. Package `kiit.logs`, artifact `dev.kiit:kiit-logs:0.7.0`.
+  It depends only on the Kotlin standard library.
 - Structured logging as the default style: `info("place", "order_id" to id)`. Entries carry `action`, `origin`,
   `scope`, redacted `fields` and `trace`. Lazy variants only build their fields when the level is enabled.
-- `LogSettings` and `LogSettings.safe()`: level, levels by logger name, stack trace mode, redaction, filter,
-  origin, scope, error policy, clock and trace line cap.
-- `Redaction` (`KeyMatch`, `RedactAction`) and the `Redactor` interface to replace it.
+- Free text with `log(level, msg, ex)` and a lazy `log(level, ex) { text }`. An exception's message goes after the
+  text on the same line: `payment failed: card declined`.
+- `LogSettings` and `LogSettings.safe()`: level, levels by logger name, stack trace mode, policies, origin, scope,
+  error handler, clock and trace line cap.
+- Policies in `kiit.logs.policies`: `Policy` (an entry in, the entry, a changed copy or null out), `RedactPolicy`
+  (`KeyMatch`, `RedactAction`) and `FilterPolicy`. `LogSettings.policies` runs them in order.
 - `StackTraces` (`Off`, `Summary` with the cause chain, `Full` with a line cap).
-- `ErrorPolicy` (`Propagate`, `Handle`) and `LogErrorHandler`. The default prints the first 3 errors and never throws.
-- `LogSink` (`emit`, `flush`, `close`, `rawFor`), `ConsoleSink`, `CompositeSink`, `minLevel` and `filtered`.
-- `SinkLogFactory` (any sink) and `ConsoleLogFactory`, with caching by name, `setLevel` (global or by name),
-  `flush` and `close`.
-- `Logger.with(...)` to add fields to every entry, `NoLogger`, `LogLevel.Trace` and `LogLevel.Off`.
+- `ErrorHandler` with `ErrorHandler.printing()` as the default (prints the first 3 errors, never throws) and
+  `ErrorHandler.Throw` for tests. `ErrorHandler.Stage` says where something failed.
+- Sinks in `kiit.logs.sinks`: `LogSink` (`emit`, `flush`, `close`, `rawFor`), `ConsoleSink` and `CompositeSink`.
+- `Logs`, the `LogFactory` you use: `Logs.console(settings)` and `Logs(settings, sink)`. It creates loggers with
+  `logger(name)` and `logger(cls)`, caches them by name, and has `setLevel` (global or by name), `flush` and `close`.
+  `Logs.console()` uses `LogSettings.safe()`. A logger without a name is named `root` (`LogFactory.DEFAULT_NAME`).
+- `Logger.with(...)` to add fields to every entry, `NoLogger`, `LogLevel.Verbose` (the finest level, with `verbose(...)` methods) and `LogLevel.Off`.
 - Android writes to logcat with the real priority and tag, and splits long entries (default 4000 characters).
+- A Kotlin sample app in `samples/sample-kotlin`, run with `./gradlew :samples:sample-kotlin:run`.
 
 ### Changed (from `kiit.common.log`, for anyone moving over)
 - Package `kiit.common.log` is now `kiit.logs`, and the artifact is `kiit-logs` (was part of `kiit-common`).
 - `LogSupport` is gone. Its methods are on `Logger`, so a class holds a `Logger` and calls it, instead of
   mixing in an interface. A nullable `Logger?` becomes `NoLogger`.
-- `Logger` is a final class, `Logger(settings, name, sink)`. A provider no longer extends it. It implements
-  `LogSink.emit`, and the level check, filter and redaction are done before `emit`.
-- `Logs` is now `LogFactory`, and `LogsDefault` (an object) is `ConsoleLogFactory(settings)` (a class).
-  `Provider` is no longer inherited, `provider` is a property of `LogFactory`. `getLogger(Class)` takes a `KClass`,
-  with a JVM extension for `Class`.
+- `Logger` is a final class with no public constructor. A `Logs` creates it, so every logger follows the settings
+  of the `Logs` that made it. A provider no longer extends `Logger`. It implements `LogSink.emit`, and the level
+  check and the policies are done before `emit`.
+- `Logs` (the old interface) is now `LogFactory`, and `LogsDefault` (an object) is `Logs.console(settings)`, with
+  `Logs` as the class that implements `LogFactory`. `Provider` is no longer inherited, the wrapped library's root object is a property
+  of `LogFactory`. `getLogger(Class)` is `logger(KClass)`, and there is no overload that takes a `Class`.
+- The level changes at runtime through the factory, `logs.setLevel(...)`, and the change is atomic. A logger's
+  `settings` can be read, not replaced.
 - The default level is `Error`. The console default was `Debug` and `Logger` was `Warn`.
-- `LogEntry.time` is a `kotlinx.datetime.Instant` (was a `ZonedDateTime`). `LogEntry.tag` is removed.
+- `LogEntry.time` is a `kotlin.time.Instant` and `LogSettings.clock` is a `kotlin.time.Clock` (the time was a
+  `ZonedDateTime`). `LogEntry.tag` is removed.
 - The logging methods take an action and fields. Printf-style messages (`info("id=%s", id)`), the exception
   first overloads and the key/value list overloads are removed. Free text is `log(level, msg, ex)`.
-- Sensitive keys are masked (`password=***`) and configurable. They used to be dropped, from a fixed list.
+- Sensitive keys are masked (`password=***`) and configurable. They used to be dropped, from a fixed list. The
+  default matching is `Contains`, which hides more rather than less, for example `token_count`.
 - Console output is `<time> [name] Level : scope action, msg, k=v`, comma separated. It used to print the logger's
   level, not the entry's, and had literal `+ : +` text. Field keys are printed as written.
 - Stack traces are off by default. The exception message is always part of the log line.

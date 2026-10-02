@@ -18,8 +18,8 @@ package kiit.logs
 sealed class LogLevel(val name: String, val code: Int) {
     operator fun compareTo(lv: LogLevel): Int = this.code.compareTo(lv.code)
 
-    /** Finest detail, step by step. Below Debug. Use logAction(LogLevel.Trace, ...) to log at it. */
-    object Trace : LogLevel("Trace", 0)
+    /** Finest detail, step by step. Below Debug. The same name as the lowest level on Android. */
+    object Verbose : LogLevel("Verbose", 0)
 
     object Debug : LogLevel("Debug", 1)
 

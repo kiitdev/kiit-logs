@@ -15,6 +15,7 @@ package kiit.logs
 
 import kiit.logs.internal.ErrorGuard
 import kiit.logs.internal.LogState
+import kiit.logs.internal.SettingsRef
 import kiit.logs.internal.StackTraceBuilder
 import kiit.logs.policies.ErrorHandler.Stage
 import kiit.logs.policies.Policies
@@ -40,28 +41,27 @@ import kiit.logs.sinks.LogSink
  *
  * A logger sends every entry that passes the level check and the [LogSettings.policies] to its [LogSink].
  */
+@Suppress("TooManyFunctions") // one method per level and style for now, to go when the logging API is consolidated
 class Logger private constructor(
     private val state: LogState,
     val name: String,
     private val sink: LogSink,
     private val bound: List<Pair<String, Any?>>
 ) {
-    constructor(settings: LogSettings, name: String, sink: LogSink) :
-        this(LogState(settings, name), name, sink, emptyList())
+    // Loggers come from a [Logs], which gives all of its loggers the one settings reference it holds
+    internal constructor(source: SettingsRef, name: String, sink: LogSink) :
+        this(LogState(source, name), name, sink, emptyList())
 
     /**
-     * Convenience constructor for when only the level is customized.
-     */
-    constructor(level: LogLevel, name: String, sink: LogSink) : this(LogSettings.safe().copy(level = level), name, sink)
-
-    /**
-     * The current settings. They can be replaced at runtime, e.g. to lower the level for diagnostics:
+     * The current settings, for reading. The level is the one setting that can change while the app runs, and
+     * it changes through the factory, e.g. to lower it for diagnostics:
      *
-     *     logger.settings = logger.settings.copy(level = LogLevel.Debug)
+     *     logs.setLevel(LogLevel.Debug)
+     *     logs.setLevel("com.shop.orders", LogLevel.Debug)
      */
     var settings: LogSettings
         get() = state.settings
-        set(value) {
+        internal set(value) {
             state.settings = value
         }
 
@@ -79,6 +79,11 @@ class Logger private constructor(
     val raw: Any? get() = sink.rawFor(name)
 
     /**
+     * [raw] as T, or null if there is none or it is a different type.
+     */
+    inline fun <reified T> rawAs(): T? = raw as? T
+
+    /**
      * Pushes out anything the sink has buffered.
      */
     fun flush() {
@@ -86,6 +91,8 @@ class Logger private constructor(
     }
 
     // Structured logging: an action with key/value fields ( redacted by the logger's policies )
+    fun verbose(action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Verbose, action, null, fields)
+
     fun debug(action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Debug, action, null, fields)
 
     fun info(action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Info, action, null, fields)
@@ -97,6 +104,8 @@ class Logger private constructor(
     fun fatal(action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Fatal, action, null, fields)
 
     // Structured logging with an exception
+    fun verbose(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Verbose, action, ex, fields)
+
     fun debug(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Debug, action, ex, fields)
 
     fun info(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Info, action, ex, fields)
@@ -108,6 +117,9 @@ class Logger private constructor(
     fun fatal(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Fatal, action, ex, fields)
 
     // Structured logging, lazy: fields are only built if the level is enabled
+    fun verbose(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) =
+        logIfEnabled(LogLevel.Verbose, action, ex, fields)
+
     fun debug(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) =
         logIfEnabled(LogLevel.Debug, action, ex, fields)
 
@@ -138,35 +150,36 @@ class Logger private constructor(
     // Free text
 
     /**
-     * Logs a message. If there is an exception, its message is appended.
+     * Logs a message. If there is an exception, its message is appended after a colon:
+     * "payment failed: card declined".
      * @param level
      * @param msg
      * @param ex
      */
     fun log(level: LogLevel, msg: String?, ex: Throwable? = null) {
-        send(level) {
-            val text =
-                when {
-                    ex == null -> msg
-                    msg.isNullOrEmpty() -> ex.message
-                    else -> ex.message?.let { "$msg\n$it" } ?: msg
-                }
-            build(level, text ?: "", ex, null, emptyList())
-        }
+        send(level) { s -> build(s, level, textWith(msg, ex), ex, null, emptyList()) }
     }
 
     /**
-     * Logs a message that is only built if the level is enabled
+     * Logs a message that is only built if the level is enabled, with an exception if there is one. The
+     * exception's message is appended, as in the other [log]:
      *
-     * log(LogLevel.Debug, "updating user") { " some expensive message to build" }
+     *     log(LogLevel.Debug) { "cache ${expensive()}" }
+     *     log(LogLevel.Error, ex) { "charge ${expensive()}" }
+     *
+     * Details that should be searchable are better as fields, see [debug] with a lambda of fields.
      */
-    fun log(level: LogLevel, msg: String? = null, callback: () -> String) {
-        logIfEnabled(level, msg, callback)
+    fun log(level: LogLevel, ex: Throwable? = null, callback: () -> String) {
+        send(level) { s -> build(s, level, textWith(callback(), ex), ex, null, emptyList()) }
     }
 
-    private fun logIfEnabled(level: LogLevel, msg: String?, callback: () -> String) {
-        send(level) { build(level, "${msg ?: ""} : ${callback()}", null, null, emptyList()) }
-    }
+    // The message, then the exception's message after a colon when there is one: "payment failed: card declined"
+    private fun textWith(msg: String?, ex: Throwable?): String =
+        when {
+            ex == null -> msg
+            msg.isNullOrEmpty() -> ex.message
+            else -> ex.message?.let { "$msg: $it" } ?: msg
+        } ?: ""
 
     /**
      * Logs an entry with key/value fields. Fields are redacted by the [LogSettings.policies] before
@@ -179,7 +192,7 @@ class Logger private constructor(
         ex: Throwable? = null,
         action: String? = null
     ) {
-        send(level) { build(level, msg ?: ex?.message ?: "", ex, action, fields) }
+        send(level) { s -> build(s, level, msg ?: ex?.message ?: "", ex, action, fields) }
     }
 
     /**
@@ -191,7 +204,7 @@ class Logger private constructor(
         ex: Throwable?,
         fields: () -> List<Pair<String, Any?>>
     ) {
-        send(level) { build(level, ex?.message ?: "", ex, action, fields()) }
+        send(level) { s -> build(s, level, ex?.message ?: "", ex, action, fields()) }
     }
 
     /**
@@ -207,26 +220,31 @@ class Logger private constructor(
 
     /**
      * The one path every log call takes: level check, build the entry, run the policies, deliver. Anything that
-     * throws along the way goes to the [LogSettings.errors] policy, and a lazy message or field lambda
+     * throws along the way goes to the [LogSettings.errors] handler, and a lazy message or field lambda
      * is only run when the level is enabled.
+     *
+     * The settings are read once, so one call never mixes two versions of them, even if they are replaced
+     * while it runs. A change applies from the next call.
      */
-    private inline fun send(level: LogLevel, make: () -> LogEntry) {
+    private inline fun send(level: LogLevel, make: (LogSettings) -> LogEntry) {
         if (!isEnabled(level)) return
         val s = settings
-        val entry = ErrorGuard.guard(s.errors, Stage.Build, null, make) ?: return
+        val entry = ErrorGuard.guard(s.errors, Stage.Build, null) { make(s) } ?: return
         // A policy that throws drops the entry, and the error is reported without it, since it may not be redacted yet
         val delivered = ErrorGuard.guard(s.errors, Stage.Policy, null) { Policies.applyTo(s.policies, entry) } ?: return
         ErrorGuard.guard(s.errors, Stage.Sink, delivered) { sink.emit(delivered) }
     }
 
+    // The parts of one entry, plus the settings snapshot it is stamped from
+    @Suppress("LongParameterList")
     private fun build(
+        s: LogSettings,
         level: LogLevel,
         msg: String,
         ex: Throwable?,
         action: String?,
         fields: List<Pair<String, Any?>>
     ): LogEntry {
-        val s = settings
         return LogEntry(
             name = name,
             level = level,
@@ -243,8 +261,3 @@ class Logger private constructor(
 
     companion object
 }
-
-/**
- * [Logger.raw] as T, or null if there is none or it is a different type.
- */
-inline fun <reified T> Logger.rawAs(): T? = raw as? T

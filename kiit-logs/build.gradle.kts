@@ -38,11 +38,6 @@ kotlin {
     }
 
     sourceSets {
-        commonMain.dependencies {
-            // api, not implementation: LogEntry.time is a kotlinx-datetime Instant in the public
-            // API, so consumers need this on their own compile classpath too.
-            api(libs.kotlinx.datetime)
-        }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }

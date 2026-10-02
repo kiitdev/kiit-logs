@@ -9,13 +9,9 @@ detekt                  = "1.23.7"
 dokka                   = "2.0.0"
 kover                   = "0.9.1"
 skie                    = "0.10.14"
-# kotlinx-datetime: verify this is still the latest stable release compatible with kotlin=2.3.21
-# before publishing.
-kotlinxDatetime         = "0.6.1"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
-kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
 
 [plugins]
 kotlin-jvm              = { id = "org.jetbrains.kotlin.jvm",         version.ref = "kotlin" }

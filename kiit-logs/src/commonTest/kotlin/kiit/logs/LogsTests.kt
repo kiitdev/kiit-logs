@@ -15,7 +15,7 @@ class LogsTests {
         val factory = Logs(settings, sink)
         assertSame(settings, factory.settings)
 
-        val log = factory.getLogger("orders")
+        val log = factory.logger("orders")
         log.debug("skipped")
         log.info("place", "order_id" to "abc")
         assertEquals(1, sink.entries.size)
@@ -29,21 +29,30 @@ class LogsTests {
         val settings = testSettings()
         val factory = Logs.console(settings)
         assertSame(settings, factory.settings)
-        assertIs<ConsoleSink>(factory.provider)
+        assertIs<ConsoleSink>(factory.raw)
     }
 
     @Test
-    fun getLogger_returns_the_same_logger_for_the_same_name() {
+    fun console_without_settings_uses_the_safe_defaults() {
+        val logs = Logs.console()
+        assertEquals(LogSettings.safe().level, logs.settings.level)
+        assertEquals(LogLevel.Error, logs.logger("app").level)
+        logs.setLevel(LogLevel.Debug)
+        assertEquals(LogLevel.Debug, logs.logger("app").level)
+    }
+
+    @Test
+    fun logger_returns_the_same_logger_for_the_same_name() {
         val factory = Logs(testSettings(), MemorySink())
-        assertSame(factory.getLogger("a"), factory.getLogger("a"))
-        assertTrue(factory.getLogger("a") !== factory.getLogger("b"))
+        assertSame(factory.logger("a"), factory.logger("a"))
+        assertTrue(factory.logger("a") !== factory.logger("b"))
     }
 
     @Test
     fun a_level_change_on_the_returned_factory_applies() {
         val sink = MemorySink()
         val factory = Logs(testSettings(LogLevel.Error), sink)
-        val log = factory.getLogger("orders")
+        val log = factory.logger("orders")
         log.info("before")
         factory.setLevel(LogLevel.Info)
         log.info("after")
