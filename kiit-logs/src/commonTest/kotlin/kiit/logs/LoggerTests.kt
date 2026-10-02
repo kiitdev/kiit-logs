@@ -173,6 +173,31 @@ class LoggerTests {
     }
 
     @Test
+    fun one_call_uses_one_snapshot_of_the_settings() {
+        val sink = MemorySink()
+        val log = Logger(testSettings().copy(origin = "before"), "L", sink)
+        // The lambda runs during the call, so this changes the settings in the middle of it
+        log.log(LogLevel.Info) {
+            log.settings = log.settings.copy(origin = "after")
+            "first"
+        }
+        log.log(LogLevel.Info) { "second" }
+        assertEquals(listOf("before", "after"), sink.entries.map { it.origin })
+    }
+
+    @Test
+    fun a_settings_change_during_a_call_applies_to_the_next_call() {
+        val sink = MemorySink()
+        val log = Logger(testSettings(), "L", sink)
+        log.log(LogLevel.Info) {
+            log.settings = log.settings.copy(policies = listOf(FilterPolicy { false }))
+            "first"
+        }
+        log.log(LogLevel.Info) { "second" }
+        assertEquals(listOf("first"), sink.entries.map { it.msg })
+    }
+
+    @Test
     fun lazy_fields_are_only_built_when_the_level_is_enabled() {
         val sink = MemorySink()
         var calls = 0

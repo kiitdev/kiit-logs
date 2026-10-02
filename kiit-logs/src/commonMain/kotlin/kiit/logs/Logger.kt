@@ -55,13 +55,15 @@ class Logger private constructor(
     constructor(level: LogLevel, name: String, sink: LogSink) : this(LogSettings.safe().copy(level = level), name, sink)
 
     /**
-     * The current settings. They can be replaced at runtime, e.g. to lower the level for diagnostics:
+     * The current settings, for reading. The level is the one setting that can change while the app runs, and
+     * it changes through the factory, e.g. to lower it for diagnostics:
      *
-     *     logger.settings = logger.settings.copy(level = LogLevel.Debug)
+     *     logs.setLevel(LogLevel.Debug)
+     *     logs.setLevel("com.shop.orders", LogLevel.Debug)
      */
     var settings: LogSettings
         get() = state.settings
-        set(value) {
+        internal set(value) {
             state.settings = value
         }
 
@@ -144,7 +146,7 @@ class Logger private constructor(
      * @param ex
      */
     fun log(level: LogLevel, msg: String?, ex: Throwable? = null) {
-        send(level) { build(level, textWith(msg, ex), ex, null, emptyList()) }
+        send(level) { s -> build(s, level, textWith(msg, ex), ex, null, emptyList()) }
     }
 
     /**
@@ -157,7 +159,7 @@ class Logger private constructor(
      * Details that should be searchable are better as fields, see [debug] with a lambda of fields.
      */
     fun log(level: LogLevel, ex: Throwable? = null, callback: () -> String) {
-        send(level) { build(level, textWith(callback(), ex), ex, null, emptyList()) }
+        send(level) { s -> build(s, level, textWith(callback(), ex), ex, null, emptyList()) }
     }
 
     // The message, then the exception's message on its own line when there is one
@@ -179,7 +181,7 @@ class Logger private constructor(
         ex: Throwable? = null,
         action: String? = null
     ) {
-        send(level) { build(level, msg ?: ex?.message ?: "", ex, action, fields) }
+        send(level) { s -> build(s, level, msg ?: ex?.message ?: "", ex, action, fields) }
     }
 
     /**
@@ -191,7 +193,7 @@ class Logger private constructor(
         ex: Throwable?,
         fields: () -> List<Pair<String, Any?>>
     ) {
-        send(level) { build(level, ex?.message ?: "", ex, action, fields()) }
+        send(level) { s -> build(s, level, ex?.message ?: "", ex, action, fields()) }
     }
 
     /**
@@ -207,26 +209,31 @@ class Logger private constructor(
 
     /**
      * The one path every log call takes: level check, build the entry, run the policies, deliver. Anything that
-     * throws along the way goes to the [LogSettings.errors] policy, and a lazy message or field lambda
+     * throws along the way goes to the [LogSettings.errors] handler, and a lazy message or field lambda
      * is only run when the level is enabled.
+     *
+     * The settings are read once, so one call never mixes two versions of them, even if they are replaced
+     * while it runs. A change applies from the next call.
      */
-    private inline fun send(level: LogLevel, make: () -> LogEntry) {
+    private inline fun send(level: LogLevel, make: (LogSettings) -> LogEntry) {
         if (!isEnabled(level)) return
         val s = settings
-        val entry = ErrorGuard.guard(s.errors, Stage.Build, null, make) ?: return
+        val entry = ErrorGuard.guard(s.errors, Stage.Build, null) { make(s) } ?: return
         // A policy that throws drops the entry, and the error is reported without it, since it may not be redacted yet
         val delivered = ErrorGuard.guard(s.errors, Stage.Policy, null) { Policies.applyTo(s.policies, entry) } ?: return
         ErrorGuard.guard(s.errors, Stage.Sink, delivered) { sink.emit(delivered) }
     }
 
+    // The parts of one entry, plus the settings snapshot it is stamped from
+    @Suppress("LongParameterList")
     private fun build(
+        s: LogSettings,
         level: LogLevel,
         msg: String,
         ex: Throwable?,
         action: String?,
         fields: List<Pair<String, Any?>>
     ): LogEntry {
-        val s = settings
         return LogEntry(
             name = name,
             level = level,
