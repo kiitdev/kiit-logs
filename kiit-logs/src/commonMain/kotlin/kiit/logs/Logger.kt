@@ -15,6 +15,7 @@ package kiit.logs
 
 import kiit.logs.internal.ErrorGuard
 import kiit.logs.internal.LogState
+import kiit.logs.internal.SettingsRef
 import kiit.logs.internal.StackTraceBuilder
 import kiit.logs.policies.ErrorHandler.Stage
 import kiit.logs.policies.Policies
@@ -46,8 +47,16 @@ class Logger private constructor(
     private val sink: LogSink,
     private val bound: List<Pair<String, Any?>>
 ) {
+    /**
+     * A logger with its own settings. It is not connected to a [Logs], so [Logs.setLevel] doesn't change it.
+     * Use [Logs.logger] for loggers that follow level changes.
+     */
     constructor(settings: LogSettings, name: String, sink: LogSink) :
         this(LogState(settings, name), name, sink, emptyList())
+
+    // For the loggers of a factory, which all read the settings the factory holds
+    internal constructor(source: SettingsRef, name: String, sink: LogSink) :
+        this(LogState(source, name), name, sink, emptyList())
 
     /**
      * Convenience constructor for when only the level is customized.

@@ -14,10 +14,10 @@
 package kiit.logs
 
 import kiit.logs.internal.ErrorGuard
+import kiit.logs.internal.SettingsRef
 import kiit.logs.policies.ErrorHandler.Stage
 import kiit.logs.sinks.ConsoleSink
 import kiit.logs.sinks.LogSink
-import kotlin.concurrent.Volatile
 import kotlin.concurrent.atomics.AtomicReference
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.reflect.KClass
@@ -44,32 +44,27 @@ class Logs(
     private val sink: LogSink,
     override val provider: Any = sink
 ) : LogFactory {
-    @Volatile
-    override var settings: LogSettings = settings
-        private set
+    private val current = SettingsRef(settings)
+
+    override val settings: LogSettings get() = current.get()
 
     // Copy-on-write, so reads and lookups need no lock
     private val loggers = AtomicReference<Map<String, Logger>>(emptyMap())
 
     override fun logger(cls: KClass<*>): Logger {
         val key = cls.qualifiedName ?: cls.simpleName ?: LogFactory.DEFAULT_NAME
-        return cached(key) { Logger(settings, key, sink) }
+        return cached(key)
     }
 
-    override fun logger(name: String?): Logger {
-        val key = name ?: LogFactory.DEFAULT_NAME
-        return cached(key) { Logger(settings, key, sink) }
-    }
+    override fun logger(name: String?): Logger = cached(name ?: LogFactory.DEFAULT_NAME)
 
+    // The loggers read the settings held here, so changing them is one atomic step for all of them
     override fun setLevel(level: LogLevel) {
-        settings = settings.copy(level = level)
-        loggers.load().values.forEach { it.settings = it.settings.copy(level = level) }
+        current.update { it.copy(level = level) }
     }
 
     override fun setLevel(name: String, level: LogLevel) {
-        val levels = settings.levels + (name to level)
-        settings = settings.copy(levels = levels)
-        loggers.load().values.forEach { it.settings = it.settings.copy(levels = levels) }
+        current.update { it.copy(levels = it.levels + (name to level)) }
     }
 
     override fun flush() {
@@ -80,19 +75,12 @@ class Logs(
         ErrorGuard.guard(settings.errors, Stage.Lifecycle, null) { sink.close() }
     }
 
-    private fun cached(key: String, create: () -> Logger): Logger {
+    private fun cached(key: String): Logger {
         while (true) {
-            val current = loggers.load()
-            current[key]?.let { return it }
-            val created = create()
-            if (loggers.compareAndSet(current, current + (key to created))) {
-                // setLevel may have run after this logger read the settings but before it was stored
-                val latest = settings
-                if (created.settings.level != latest.level || created.settings.levels != latest.levels) {
-                    created.settings = created.settings.copy(level = latest.level, levels = latest.levels)
-                }
-                return created
-            }
+            val known = loggers.load()
+            known[key]?.let { return it }
+            val created = Logger(current, key, sink)
+            if (loggers.compareAndSet(known, known + (key to created))) return created
         }
     }
 
