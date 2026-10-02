@@ -2,8 +2,8 @@ package kiit.logs
 
 import kiit.logs.policies.ErrorHandler
 import kiit.logs.sinks.LogSink
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 class MemorySink : LogSink {
     val entries = mutableListOf<LogEntry>()

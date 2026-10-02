@@ -16,7 +16,7 @@ package kiit.logs
 import kiit.logs.policies.ErrorHandler
 import kiit.logs.policies.Policy
 import kiit.logs.policies.RedactPolicy
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * Settings for a [Logger]. Passed as the primary constructor argument so new options
