@@ -6,6 +6,7 @@ import kiit.logs.LogSettings
 import kiit.logs.Logs
 import kiit.logs.Source
 import kiit.logs.data.Action
+import kiit.logs.data.Event
 import kiit.logs.data.Text
 import kiit.logs.policies.FilterPolicy
 import kiit.logs.policies.KeyMatch
@@ -19,9 +20,11 @@ import kiit.logs.sinks.LogSink
 
 fun main() {
     structured()
+    events()
     freeText()
     levels()
     boundFields()
+    scopes()
     redaction()
     policies()
     stackTraces()
@@ -44,6 +47,15 @@ fun structured() {
     log.warn(Action("place", "order_id" to "abc", "reason" to "low stock"))
     // The lambda only runs when Debug is enabled
     log.debug { Action("place", "total" to expensive()) }
+}
+
+// An action says what is about to be done, an event says what has happened. A msg adds detail to either
+fun events() {
+    section("Actions and events")
+    val log = Logs.console(settings()).logger("OrderService")
+    log.info(Action("place_order", "order_id" to "abc"))
+    log.info(Event("order_placed", "order_id" to "abc", "total" to 42))
+    log.warn(Action("place_order", "order_id" to "abc", msg = "low stock"))
 }
 
 // Free text is also supported, with Text. log(level, ...) is the general method that takes any level
@@ -99,6 +111,15 @@ fun redaction() {
             entry.copy(fields = entry.fields.map { (k, v) -> if (v is String && "@" in v) k to "<email>" else k to v })
         }
     Logs.console(settings().copy(policies = listOf(values))).logger("ByValue").info(Action("signup", *fields))
+}
+
+// A logger can have its own scope, which replaces the scope of the settings. The same scope reads the same on
+// every platform, where class names can differ
+fun scopes() {
+    section("Scopes")
+    val logs = Logs.console(settings())
+    logs.logger("OrderService").info(Action("place_order"))
+    logs.logger("PaymentService", scope = "orders.payment").info(Action("charge", "order_id" to "abc"))
 }
 
 // Policies run in list order for every entry. Return the entry, a changed copy, or null to drop it
