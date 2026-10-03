@@ -1,5 +1,6 @@
 package kiit.logs
 
+import kiit.logs.internal.currentThreadName
 import kiit.logs.policies.FilterPolicy
 import kiit.logs.policies.RedactPolicy
 import kiit.logs.sinks.LogSink
@@ -28,6 +29,13 @@ class LoggerTests {
         assertEquals("", entry.msg)
         assertNull(entry.ex)
         assertNull(entry.trace)
+    }
+
+    @Test
+    fun entry_has_the_name_of_the_thread_that_logged_it() {
+        val sink = MemorySink()
+        testLogger(testSettings(), sink).info("place")
+        assertEquals(currentThreadName(), sink.entries.single().thread)
     }
 
     @Test

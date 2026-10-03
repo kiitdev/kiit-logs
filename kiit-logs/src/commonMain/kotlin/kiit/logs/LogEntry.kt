@@ -24,6 +24,9 @@ import kotlin.time.Instant
  * @param time when the entry was created, from [LogSettings.clock]
  * @param trace the exception rendered per [LogSettings.stackTraces], null when there is none or it is Off.
  *              A sink that prints exceptions should use this, so the setting applies to it too
+ * @param thread name of the thread that created the entry: the thread name on the JVM and Android, the
+ *               NSThread name on Apple, or "main" for the main thread. Empty when the thread has no name.
+ *               Not part of [text]
  */
 data class LogEntry(
     val name: String = "",
@@ -35,7 +38,8 @@ data class LogEntry(
     val scope: String = "",
     val fields: List<Pair<String, Any?>> = emptyList(),
     val time: Instant = Clock.System.now(),
-    val trace: String? = null
+    val trace: String? = null,
+    val thread: String = ""
 ) {
     /**
      * Display form built from the parts that are set: "scope action, msg, k=v, k=v", e.g.

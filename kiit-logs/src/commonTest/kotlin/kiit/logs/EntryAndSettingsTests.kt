@@ -36,6 +36,13 @@ class EntryAndSettingsTests {
     }
 
     @Test
+    fun thread_is_empty_by_default_and_not_part_of_the_text() {
+        assertEquals("", entry(msg = "slow").thread)
+        val withThread = LogEntry(name = "L", level = LogLevel.Info, msg = "slow", thread = "worker-1")
+        assertEquals("slow", withThread.text)
+    }
+
+    @Test
     fun safe_settings_are_the_safe_defaults() {
         val settings = LogSettings.safe()
         assertEquals(LogLevel.Error, settings.level)

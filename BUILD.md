@@ -8,7 +8,7 @@ All Gradle commands below are run from the **repository root**.
 |------|---------|-------|
 | JDK  | 17+     | `java -version` to verify. A JDK 21 toolchain is used for the JVM target and is downloaded if missing |
 | Android SDK | any | Required for `androidTarget` compilation |
-| Xcode | current | Required for the iOS targets and their tests (macOS only) |
+| Xcode | current | Required for the iOS and macOS targets and their tests (macOS only) |
 | GPG  | 2.x     | Only for signed releases. `signing { useGpgCmd() }` shells out to the system `gpg`. Not needed for Maven local |
 
 ## Build and test
@@ -18,6 +18,7 @@ All Gradle commands below are run from the **repository root**.
 ./gradlew :kiit-logs:jvmTest               # JVM, includes the concurrency tests
 ./gradlew :kiit-logs:testDebugUnitTest     # Android, run on the JVM
 ./gradlew :kiit-logs:iosSimulatorArm64Test # iOS simulator, macOS only
+./gradlew :kiit-logs:macosArm64Test        # macOS, Apple silicon only (macosX64Test on Intel)
 ./gradlew :kiit-logs:ktlintCheck :kiit-logs:detekt
 
 # Run the Kotlin sample app

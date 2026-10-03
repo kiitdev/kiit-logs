@@ -34,7 +34,7 @@ log.info("place", "order_id" to "abc", "total" to 42)
 2026-09-30T05:13:42.874636Z [OrderService] Info : place, order_id=abc, total=42
 ```
 
-It's a small API for apps that run on Android, iOS and the JVM, from one codebase, with no dependencies beyond the Kotlin standard library. It doesn't try to be a full logging framework. There's no file output, rotation or JSON here. The console logger is meant for development, tests and small apps, and on Android it writes to logcat. A production server should use a provider such as SLF4J and Logback behind the same calls, and that wrapper isn't built yet.
+It's a small API for apps that run on Android, iOS, macOS and the JVM, from one codebase, with no dependencies beyond the Kotlin standard library. It doesn't try to be a full logging framework. There's no file output, rotation or JSON here. The console logger is meant for development, tests and small apps, and on Android it writes to logcat. A production server should use a provider such as SLF4J and Logback behind the same calls, and that wrapper isn't built yet.
 
 The defaults lean safe. Only errors are logged, stack traces are off, and keys like `password` and `email` are masked before an entry reaches a sink. When the masking has to guess, it hides more, not less. Those are guardrails, not guarantees, and [Limits](#limits) says where they stop.
 
@@ -307,7 +307,7 @@ assertEquals(listOf("order_id" to "abc"), sink.find("place").single().fields)
 
 This is a small logger. Here is what it doesn't do.
 
-1. **Console only.** Android writes to logcat with the real level and tag, which is fine for a real app. Logcat cuts a message at about 4000 bytes, so longer entries are written as several calls, on line ends where possible. The limit is 4000 characters by default, and `Logs.console(settings, maxLength = 3000)` changes it. The JVM and iOS use `println`, so the console logger is for development and tests there. iOS doesn't use `os_log` yet.
+1. **Console only.** Android writes to logcat with the real level and tag, which is fine for a real app. Logcat cuts a message at about 4000 bytes, so longer entries are written as several calls, on line ends where possible. The limit is 4000 characters by default, and `Logs.console(settings, maxLength = 3000)` changes it. The JVM uses `println`, so the console logger is for development and tests there. iOS and macOS write with `NSLog`, which adds its own time and process prefix, so the line has no timestamp of its own. They don't use `os_log` yet.
 2. **No files, rotation, async or JSON.** That's the provider's job. No provider ships yet.
 3. **Best effort redaction.** The default matches on the field key. It doesn't look inside values, message text or an object's `toString()`. A custom `Policy` can look at values, but not the message text.
 4. **Trace ids come from elsewhere.** If you use a tracing agent, it puts the ids in the logging context and a provider such as SLF4J passes them along. kiit-logs doesn't create them or read that context. Use `log.with(...)` to attach an id yourself.
@@ -319,7 +319,7 @@ This is a small logger. Here is what it doesn't do.
 ## Requirements
 
 - Kotlin Multiplatform
-- JVM, Android, iOS (arm64, simulator arm64, x64)
+- JVM, Android, iOS (arm64, simulator arm64, x64), macOS (arm64, x64)
 - No dependencies except the Kotlin standard library
 
 ## License
