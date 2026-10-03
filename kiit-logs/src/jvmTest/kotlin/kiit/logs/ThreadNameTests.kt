@@ -1,5 +1,6 @@
 package kiit.logs
 
+import kiit.logs.data.Action
 import kiit.logs.sinks.MemorySink
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -9,7 +10,7 @@ class ThreadNameTests {
     fun entry_has_the_name_of_the_thread_that_logged_it() {
         val sink = MemorySink()
         val log = testLogger(testSettings(), sink)
-        val worker = Thread { log.info("place") }
+        val worker = Thread { log.info(Action("place")) }
         worker.name = "worker-1"
         worker.start()
         worker.join()

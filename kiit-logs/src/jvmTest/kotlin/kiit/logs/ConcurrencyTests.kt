@@ -1,5 +1,6 @@
 package kiit.logs
 
+import kiit.logs.data.Action
 import kiit.logs.sinks.MemorySink
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
@@ -43,7 +44,7 @@ class ConcurrencyTests {
     fun every_entry_arrives_when_many_threads_log() {
         val sink = MemorySink()
         val log = testLogger(testSettings(), sink, "L")
-        runThreads(8) { n -> repeat(250) { log.info("place", "thread" to n) } }
+        runThreads(8) { n -> repeat(250) { log.info(Action("place", "thread" to n)) } }
         assertEquals(2000, sink.entries.size)
     }
 
@@ -51,7 +52,7 @@ class ConcurrencyTests {
     fun each_threads_entries_keep_their_order_in_a_memory_sink() {
         val sink = MemorySink()
         val log = testLogger(testSettings(), sink, "L")
-        runThreads(8) { n -> repeat(250) { i -> log.info("place", "thread" to n, "i" to i) } }
+        runThreads(8) { n -> repeat(250) { i -> log.info(Action("place", "thread" to n, "i" to i)) } }
         val byThread = sink.entries.groupBy { e -> e.fields.first { it.first == "thread" }.second }
         assertEquals(8, byThread.size)
         byThread.values.forEach {
@@ -68,7 +69,7 @@ class ConcurrencyTests {
         runThreads(6) { n ->
             repeat(500) { i ->
                 if (n == 0 && i % 25 == 0) factory.setLevel(if (i % 50 == 0) LogLevel.Off else LogLevel.Debug)
-                log.info("x")
+                log.info(Action("x"))
             }
         }
     }

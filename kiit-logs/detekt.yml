@@ -17,7 +17,7 @@ style:
 
 complexity:
   TooManyFunctions:
-    # Logger has the level methods: debug/info/warn/error/fatal, each with fields, an exception and a
-    # lazy variant, plus free text. That breadth is the API, not a smell to split up.
+    # Logger has a method for each level, for a LogData and for a lambda that makes one, plus the general
+    # log methods. That breadth is the API, not a smell to split up.
     thresholdInClasses: 30
     thresholdInInterfaces: 50

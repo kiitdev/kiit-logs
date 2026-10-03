@@ -55,7 +55,7 @@ fun interface ErrorHandler {
     companion object {
         /**
          * Prints the first [limit] errors to the console, then stays quiet, so a broken sink or policy is noticed
-         * without flooding the output. It prints the stage, the logger name and action, and the error type and
+         * without flooding the output. It prints the stage, the logger name and prefix value, and the error type and
          * message, never the field values. This is the default handler.
          */
         fun printing(limit: Int = 3): ErrorHandler =
@@ -67,7 +67,7 @@ fun interface ErrorHandler {
                 override fun onError(stage: Stage, error: Exception, entry: LogEntry?) {
                     if (printed >= limit) return
                     printed++
-                    val where = entry?.let { " in ${it.name} ${it.action ?: ""}".trimEnd() } ?: ""
+                    val where = entry?.let { " in ${it.name} ${it.prefix?.value ?: ""}".trimEnd() } ?: ""
                     println("kiit-logs: logging failed at $stage$where: ${error::class.simpleName}: ${error.message}")
                     if (printed == limit) println("kiit-logs: more logging failures won't be shown")
                 }

@@ -23,12 +23,13 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.reflect.KClass
 
 /**
- * The [LogFactory] you use: creates loggers that all send to one [LogSink], and caches them by name so
+ * The [LogFactory] you use: creates loggers that all send to one [LogSink], and caches them by name and scope so
  * logger(name) returns the same logger for the same name. Settings are always passed in, there is no global state.
  *
- *     val logs = Logs.console(LogSettings.safe(origin = "shop.example.com"))   // print to the console
+ *     val logs = Logs.console(LogSettings.safe(Source("shop.example.com")))   // print to the console
  *     val logs = Logs(LogSettings.safe(), MySink())                            // or use your own sink
  *     val log = logs.logger(OrderService::class)
+ *     val pay = logs.logger(PaymentService::class, scope = "orders.payment")   // entries say orders.payment
  *     logs.setLevel(LogLevel.Debug)                                            // changes every logger, at runtime
  *
  * A provider that wraps another library, e.g. Logback, supplies a [LogSink] and the wrapped library's root
@@ -49,11 +50,11 @@ class Logs(
     override val settings: LogSettings get() = current.get()
 
     // Copy-on-write, so reads and lookups need no lock
-    private val loggers = AtomicReference<Map<String, Logger>>(emptyMap())
+    private val loggers = AtomicReference<Map<LoggerKey, Logger>>(emptyMap())
 
-    override fun logger(cls: KClass<*>): Logger = cached(nameOf(cls))
+    override fun logger(cls: KClass<*>, scope: String?): Logger = cached(LoggerKey(nameOf(cls), scope))
 
-    override fun logger(name: String?): Logger = cached(name ?: LogFactory.DEFAULT_NAME)
+    override fun logger(name: String?, scope: String?): Logger = cached(LoggerKey(name ?: LogFactory.DEFAULT_NAME, scope))
 
     // The loggers read the settings held here, so changing them is one atomic step for all of them
     override fun setLevel(level: LogLevel) {
@@ -82,11 +83,14 @@ class Logs(
         ErrorGuard.guard(settings.errors, Stage.Lifecycle, null) { sink.close() }
     }
 
-    private fun cached(key: String): Logger {
+    // A logger is for a name and a scope, so the same name with another scope is another logger
+    private data class LoggerKey(val name: String, val scope: String?)
+
+    private fun cached(key: LoggerKey): Logger {
         while (true) {
             val known = loggers.load()
             known[key]?.let { return it }
-            val created = Logger(current, key, sink)
+            val created = Logger(current, key.name, sink, key.scope)
             if (loggers.compareAndSet(known, known + (key to created))) return created
         }
     }

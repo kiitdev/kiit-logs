@@ -3,6 +3,7 @@ package kiit.logs.sinks
 import kiit.logs.FailingSink
 import kiit.logs.LogEntry
 import kiit.logs.LogLevel
+import kiit.logs.Prefix
 import kiit.logs.fixedTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -12,7 +13,7 @@ import kotlin.test.assertTrue
 
 class SinkTests {
     private fun entry(level: LogLevel = LogLevel.Info, action: String = "x") =
-        LogEntry(name = "L", level = level, action = action, time = fixedTime)
+        LogEntry(name = "L", level = level, prefix = Prefix("ACTION", action), time = fixedTime)
 
     @Test
     fun a_composite_gives_every_sink_the_entry() {
@@ -79,7 +80,14 @@ class SinkTests {
     fun the_console_sink_writes_without_failing() {
         val sink = ConsoleSink()
         sink.emit(entry())
-        sink.emit(LogEntry(name = "com.shop.Orders", level = LogLevel.Error, action = "charge", trace = "IllegalStateException: boom"))
+        val withTrace =
+            LogEntry(
+                name = "com.shop.Orders",
+                level = LogLevel.Error,
+                prefix = Prefix("ACTION", "charge"),
+                trace = "IllegalStateException: boom",
+            )
+        sink.emit(withTrace)
         sink.flush()
         sink.close()
         assertEquals(4000, ConsoleSink.DEFAULT_MAX_LENGTH)

@@ -4,6 +4,8 @@ import kiit.logs.LogEntry
 import kiit.logs.LogLevel
 import kiit.logs.LogSettings
 import kiit.logs.Logs
+import kiit.logs.Prefix
+import kiit.logs.data.Action
 import kiit.logs.fixedTime
 import kiit.logs.testLogger
 import kiit.logs.testSettings
@@ -12,13 +14,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class MemorySinkTests {
-    private fun entry(action: String) = LogEntry(name = "L", level = LogLevel.Info, action = action, time = fixedTime)
+    private fun entry(action: String) = LogEntry(name = "L", level = LogLevel.Info, prefix = Prefix("ACTION", action), time = fixedTime)
 
     @Test
     fun entries_are_in_the_order_they_were_logged() {
         val sink = MemorySink()
         listOf("a", "b", "c").forEach { sink.emit(entry(it)) }
-        assertEquals(listOf("a", "b", "c"), sink.entries.map { it.action })
+        assertEquals(listOf("a", "b", "c"), sink.entries.map { it.prefix?.value })
     }
 
     @Test
@@ -38,7 +40,7 @@ class MemorySinkTests {
         sink.clear()
         assertTrue(sink.entries.isEmpty())
         sink.emit(entry("b"))
-        assertEquals(listOf("b"), sink.entries.map { it.action })
+        assertEquals(listOf("b"), sink.entries.map { it.prefix?.value })
     }
 
     @Test
@@ -72,9 +74,9 @@ class MemorySinkTests {
         val sink = MemorySink()
         val logs = Logs(LogSettings.safe().copy(level = LogLevel.Info), sink)
 
-        logs.logger("orders").info("place", "order_id" to "abc")
+        logs.logger("orders").info(Action("place", "order_id" to "abc"))
 
-        assertEquals("place", sink.entries.single().action)
+        assertEquals("place", sink.entries.single().prefix?.value)
         assertEquals(listOf("order_id" to "abc"), sink.find("place").single().fields)
     }
 
@@ -82,7 +84,7 @@ class MemorySinkTests {
     fun the_fields_are_already_redacted_when_the_sink_gets_them() {
         val sink = MemorySink()
         val settings = testSettings().copy(policies = listOf(kiit.logs.policies.RedactPolicy()))
-        testLogger(settings, sink).info("pay", "password" to "hunter2")
+        testLogger(settings, sink).info(Action("pay", "password" to "hunter2"))
         assertTrue(sink.entries.single().fields.none { it.second == "hunter2" })
     }
 }

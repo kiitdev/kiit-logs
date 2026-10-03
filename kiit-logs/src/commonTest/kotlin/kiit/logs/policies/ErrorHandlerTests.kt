@@ -5,6 +5,7 @@ import kiit.logs.LogEntry
 import kiit.logs.LogLevel
 import kiit.logs.LogSettings
 import kiit.logs.Logs
+import kiit.logs.data.Action
 import kiit.logs.sinks.CompositeSink
 import kiit.logs.sinks.MemorySink
 import kiit.logs.testLogger
@@ -28,17 +29,17 @@ class ErrorHandlerTests {
     @Test
     fun propagate_throws_the_error_to_the_caller() {
         val log = testLogger(settings(ErrorHandler.Throw), FailingSink("down"), "L")
-        assertEquals("down", assertFailsWith<IllegalStateException> { log.info("x") }.message)
+        assertEquals("down", assertFailsWith<IllegalStateException> { log.info(Action("x")) }.message)
     }
 
     @Test
     fun a_handler_is_told_the_stage_the_error_and_the_entry() {
         val records = mutableListOf<Recorded>()
-        testLogger(settings(handling(records)), FailingSink("down"), "L").info("place")
+        testLogger(settings(handling(records)), FailingSink("down"), "L").info(Action("place"))
         val record = records.single()
         assertEquals(ErrorHandler.Stage.Sink, record.stage)
         assertEquals("down", record.error.message)
-        assertEquals("place", record.entry?.action)
+        assertEquals("place", record.entry?.prefix?.value)
     }
 
     @Test
@@ -46,7 +47,7 @@ class ErrorHandlerTests {
         val records = mutableListOf<Recorded>()
         val sink = MemorySink()
         val policy = Policy { throw IllegalArgumentException("redaction bug") }
-        testLogger(settings(handling(records)).copy(policies = listOf(policy)), sink, "L").info("secret", "k" to "v")
+        testLogger(settings(handling(records)).copy(policies = listOf(policy)), sink, "L").info(Action("secret", "k" to "v"))
         assertEquals(ErrorHandler.Stage.Policy, records.single().stage)
         assertNull(records.single().entry)
         assertTrue(sink.entries.isEmpty())
@@ -57,7 +58,7 @@ class ErrorHandlerTests {
         val records = mutableListOf<Recorded>()
         val sink = MemorySink()
         val filter = FilterPolicy { throw IllegalArgumentException("filter bug") }
-        testLogger(settings(handling(records)).copy(policies = listOf(filter)), sink, "L").info("dropped")
+        testLogger(settings(handling(records)).copy(policies = listOf(filter)), sink, "L").info(Action("dropped"))
         assertEquals(ErrorHandler.Stage.Policy, records.single().stage)
         assertNull(records.single().entry)
         assertTrue(sink.entries.isEmpty())
@@ -68,7 +69,7 @@ class ErrorHandlerTests {
         val records = mutableListOf<Recorded>()
         val sink = MemorySink()
         val log = testLogger(settings(handling(records)), sink, "L")
-        log.info("place") { throw IllegalArgumentException("fields bug") }
+        log.info { throw IllegalArgumentException("fields bug") }
         log.log(LogLevel.Info) { throw IllegalArgumentException("message bug") }
         assertEquals(listOf(ErrorHandler.Stage.Build, ErrorHandler.Stage.Build), records.map { it.stage })
         assertTrue(sink.entries.isEmpty())
@@ -78,7 +79,7 @@ class ErrorHandlerTests {
     fun a_disabled_level_runs_nothing_and_reports_nothing() {
         val records = mutableListOf<Recorded>()
         val log = testLogger(settings(handling(records)), FailingSink(), "L")
-        log.debug("place") { throw IllegalArgumentException("must not run") }
+        log.debug { throw IllegalArgumentException("must not run") }
         log.log(LogLevel.Debug) { throw IllegalArgumentException("must not run") }
         assertTrue(records.isEmpty())
     }
@@ -86,12 +87,12 @@ class ErrorHandlerTests {
     @Test
     fun a_handler_that_throws_is_ignored() {
         val handler = ErrorHandler { _, _, _ -> throw RuntimeException("handler bug") }
-        testLogger(settings(handler), FailingSink(), "L").info("x")
+        testLogger(settings(handler), FailingSink(), "L").info(Action("x"))
     }
 
     @Test
     fun a_handler_that_does_nothing_makes_logging_silent() {
-        testLogger(settings(ErrorHandler { _, _, _ -> }), FailingSink(), "L").info("x")
+        testLogger(settings(ErrorHandler { _, _, _ -> }), FailingSink(), "L").info(Action("x"))
     }
 
     @Test
@@ -99,7 +100,7 @@ class ErrorHandlerTests {
         val settings = LogSettings.safe().copy(level = LogLevel.Info)
         assertTrue(settings.errors !== ErrorHandler.Throw)
         val log = testLogger(settings, FailingSink(), "L")
-        repeat(5) { log.info("x") }
+        repeat(5) { log.info(Action("x")) }
     }
 
     @Test
@@ -132,7 +133,7 @@ class ErrorHandlerTests {
         val records = mutableListOf<Recorded>()
         val ok = MemorySink()
         val sink = CompositeSink(FailingSink("one"), FailingSink("two"), ok)
-        testLogger(settings(handling(records)), sink, "L").info("composite")
+        testLogger(settings(handling(records)), sink, "L").info(Action("composite"))
         val record = records.single()
         assertEquals("one", record.error.message)
         assertEquals(1, record.error.suppressedExceptions.size)

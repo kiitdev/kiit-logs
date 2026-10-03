@@ -20,5 +20,6 @@ internal actual fun consoleWrite(entry: LogEntry, text: String, maxLength: Int) 
         }
     // Names can be long ( com.shop.orders.OrderService ), logcat only needs the class part
     val androidTag = entry.name.substringAfterLast('.').take(MAX_TAG)
-    chunkText(text, maxLength).forEach { Log.println(priority, androidTag, it) }
+    // The tag has the name, logcat adds the time and the level, so the message starts with the source
+    chunkText("[${entry.source.text}] $text", maxLength).forEach { Log.println(priority, androidTag, it) }
 }

@@ -1,5 +1,6 @@
 package kiit.logs
 
+import kiit.logs.data.Action
 import kiit.logs.sinks.ConsoleSink
 import kiit.logs.sinks.MemorySink
 import kotlin.test.Test
@@ -100,7 +101,7 @@ class LevelTests {
         assertEquals(LogLevel.Debug, existing.level)
         assertEquals(LogLevel.Debug, factory.logger("B").level)
         assertEquals(LogLevel.Debug, factory.settings.level)
-        existing.debug("now shown")
+        existing.debug(Action("now shown"))
         assertEquals(1, sink.entries.size)
     }
 

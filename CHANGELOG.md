@@ -10,12 +10,18 @@ All notable changes to kiit-logs are documented here. Format follows
 - Extracted from the Kiit monorepo (`kiit.common.log`, commit `c2bf883`) as its own standalone
   Kotlin Multiplatform module for JVM, Android and iOS. Package `kiit.logs`, artifact `dev.kiit:kiit-logs:0.7.0`.
   It depends only on the Kotlin standard library.
-- Structured logging as the default style: `info("place", "order_id" to id)`. Entries carry `action`, `origin`,
-  `scope`, redacted `fields` and `trace`. Lazy variants only build their fields when the level is enabled.
-- Free text with `log(level, msg, ex)` and a lazy `log(level, ex) { text }`. An exception's message goes after the
-  text on the same line: `payment failed: card declined`.
-- `LogSettings` and `LogSettings.safe()`: level, levels by logger name, stack trace mode, policies, origin, scope,
-  error handler, clock and trace line cap.
+- Logging through one input type, `LogData`, an open interface with `prefix`, `msg`, `ex` and `fields`, each with a
+  default. `Logger` has one general method, `log(level, data)`, and for each level an eager and a lazy form:
+  `info(Action("place_order", "order_id" to id))` and `info { Action(...) }`. The lambda only runs when the level is
+  enabled. Entries carry `prefix`, `source`, redacted `fields` and `trace`.
+- The built-in `LogData` types in `kiit.logs.data`: `Action` (something about to be done, `ACTION: place_order`),
+  `Event` (something that has happened, `EVENT: order_placed`) and `Text` (free form). `Action` and `Event` take a name,
+  fields, and an optional `msg` and `ex`. An exception's message goes after the text on the same line:
+  `payment failed: card declined`.
+- `Prefix(label, value)` and `Source(origin, scope = "")` in `kiit.logs`. `Source.text` is `origin:scope`, the same form
+  as a service id in kiit-service-id.
+- `LogSettings` and `LogSettings.safe()`: level, levels by logger name, stack trace mode, policies, source,
+  error handler, clock and trace line cap. `LogSettings.safe()` uses the source `app:` when it is given none.
 - Policies in `kiit.logs.policies`: `Policy` (an entry in, the entry, a changed copy or null out), `RedactPolicy`
   (`KeyMatch`, `RedactAction`) and `FilterPolicy`. `LogSettings.policies` runs them in order.
 - `StackTraces` (`Off`, `Summary` with the cause chain, `Full` with a line cap).
@@ -23,10 +29,12 @@ All notable changes to kiit-logs are documented here. Format follows
   `ErrorHandler.Throw` for tests. `ErrorHandler.Stage` says where something failed.
 - Sinks in `kiit.logs.sinks`: `LogSink` (`emit`, `flush`, `close`, `rawFor`), `ConsoleSink` and `CompositeSink`.
 - `MemorySink` in `kiit.logs.sinks`, for testing an app's logging. It keeps the entries it receives, is safe to use from
-  several threads, and has `entries`, `find(action)`, `clear()` and the `flushed` and `closed` call counts.
+  several threads, and has `entries`, `find(value)`, `clear()` and the `flushed` and `closed` call counts.
 - `Logs`, the `LogFactory` you use: `Logs.console(settings)` and `Logs(settings, sink)`. It creates loggers with
-  `logger(name)` and `logger(cls)`, caches them by name, and has `setLevel` (global or by name), `flush` and `close`.
+  `logger(name)` and `logger(cls)`, caches them by name and scope, and has `setLevel` (global or by name), `flush` and `close`.
   `Logs.console()` uses `LogSettings.safe()`. A logger without a name is named `root` (`LogFactory.DEFAULT_NAME`).
+- `logger(name, scope)` and `logger(cls, scope)` give a logger its own scope, in place of the scope of the settings.
+  The origin stays, the same name with another scope is another logger, and levels are still set by name.
 - `setLevel(name, null)` removes the level of a name, atomically. The name then follows the longest remaining prefix,
   or the global level. `setLevel(cls, level)` sets the level for a class, named the way `logger(cls)` names it.
   `setLevel(name, level)` now takes a `LogLevel?`, so a `LogFactory` implementation that overrides it must change its
@@ -53,21 +61,32 @@ All notable changes to kiit-logs are documented here. Format follows
 - The default level is `Error`. The console default was `Debug` and `Logger` was `Warn`.
 - `LogEntry.time` is a `kotlin.time.Instant` and `LogSettings.clock` is a `kotlin.time.Clock` (the time was a
   `ZonedDateTime`). `LogEntry.tag` is removed.
-- The logging methods take an action and fields. Printf-style messages (`info("id=%s", id)`), the exception
-  first overloads and the key/value list overloads are removed. Free text is `log(level, msg, ex)`.
+- The logging methods take a `LogData`. Printf-style messages (`info("id=%s", id)`), the exception
+  first overloads and the key/value list overloads are removed. Free text is `Text(msg, ex)`.
+- `LogEntry.action` is `LogEntry.prefix`, a `Prefix(label, value)`, e.g. `Prefix("ACTION", "place_order")`. `LogEntry.origin`
+  and `LogEntry.scope` are `LogEntry.source`, and `LogSettings.origin` and `LogSettings.scope` are `LogSettings.source`.
+  `LogSettings.safe(origin, scope)` is `LogSettings.safe(source)`.
+- `LogFactory.logger(name)` and `logger(cls)` take an optional `scope`, so a `LogFactory` implementation must add the
+  parameter.
+- `MemorySink.find(action)` is `find(value)`, and it matches the value of the prefix under any label.
 - Sensitive keys are masked (`password=***`) and configurable. They used to be dropped, from a fixed list. The
   default matching is `Contains`, which hides more rather than less, for example `token_count`.
-- Console output is `<time> [name] Level : scope action, msg, k=v`, comma separated. It used to print the logger's
-  level, not the entry's, and had literal `+ : +` text. Field keys are printed as written.
+- Console output is `<time> [origin:scope] Level : prefix, k=v, logger=name`, comma separated, e.g.
+  `ACTION: place_order, order_id=abc, logger=OrderService`. The `msg` of an action or event prints as `msg="..."` after
+  the prefix, and the message of a `Text` prints as it is. The old output printed the logger's level, not the entry's,
+  and had literal `+ : +` text. Field keys are printed as written.
 - Stack traces are off by default. The exception message is always part of the log line.
 - Field key case: `LogUtils.toKey` lowercased keys in the output, so `orderId` printed as `orderid`. It no longer does.
 
 - Apple console output uses `NSLog` instead of `println`. `NSLog` adds its own time and process prefix, so the line
-  is `[name] Level : text` with no timestamp of ours.
+  is `[origin:scope] Level : text` with no timestamp of ours. Android writes `[origin:scope] text` to logcat, with the
+  logger name as the tag.
 - `LogEntry` has a new last constructor parameter, `thread`. Code that builds entries by name is not affected. Code
   that destructures one with `componentN` or calls the constructor positionally past `trace` needs a look.
 
 ### Removed
+- The per-level overloads with fields, an exception or a lambda of fields, `logAction`, and the `log(level, msg, ex)`
+  and `log(level, ex) { text }` forms. `Logger` no longer needs the `TooManyFunctions` suppression.
 - `LogLevel.parse` (it always returned `Debug`, because of a case bug), `LogSupport.trace`, `LogUtils`,
   `@Ignore` on the logging methods, and the dependency on `kiit-common`.
 

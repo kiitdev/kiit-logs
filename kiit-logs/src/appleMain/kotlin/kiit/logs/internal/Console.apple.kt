@@ -11,5 +11,5 @@ import platform.Foundation.create
 // A Kotlin String passed straight to a C vararg is not an NSString, and crashes, so it is wrapped.
 @OptIn(BetaInteropApi::class)
 internal actual fun consoleWrite(entry: LogEntry, text: String, maxLength: Int) {
-    NSLog("%@", NSString.create(string = "[${entry.name}] ${entry.level.name} : $text"))
+    NSLog("%@", NSString.create(string = "[${entry.source.text}] ${entry.level.name} : $text"))
 }

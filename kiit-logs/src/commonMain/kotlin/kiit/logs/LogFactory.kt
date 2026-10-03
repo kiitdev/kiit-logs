@@ -33,14 +33,21 @@ interface LogFactory {
 
     /**
      * The logger for a name. No name and null both give the logger named [DEFAULT_NAME].
+     *
+     * @param scope where in the origin this logger's entries come from, e.g. "orders.payment", in place of the
+     *              scope of [LogSettings.source]. Null, the default, keeps that scope. The same name with a
+     *              different scope is a different logger. Levels are still set by name.
      */
-    fun logger(name: String? = DEFAULT_NAME): Logger
+    fun logger(name: String? = DEFAULT_NAME, scope: String? = null): Logger
 
     /**
      * The logger for a class, named by its qualified name. A class that has none, e.g. an anonymous object,
      * gets the logger named [DEFAULT_NAME].
+     *
+     * @param scope as for the logger of a name. The same scope on every platform keeps the entries of shared code
+     *              the same, where class names can differ
      */
-    fun logger(cls: KClass<*>): Logger
+    fun logger(cls: KClass<*>, scope: String? = null): Logger
 
     /**
      * Changes the level at runtime, e.g. to Debug for diagnostics. Applies to loggers already

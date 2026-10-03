@@ -24,14 +24,16 @@ Part of [Kiit](https://www.kiit.dev)
 
 ## Why
 
-A log line is usually a sentence with values glued into it. Searching for it later means guessing the wording. kiit-logs logs the action and its inputs instead: a name for what was attempted, then the key/value pairs that matter.
+A log line is usually a sentence with values glued into it. Searching for it later means guessing the wording. kiit-logs logs a named action or event instead, with the values that matter as key/value pairs.
 
 ```kotlin
-log.info("place", "order_id" to "abc", "total" to 42)
+log.info(Action("place_order", "order_id" to "abc", "total" to 42))
+log.info(Event("order_placed", "order_id" to "abc", "total" to 42))
 ```
 
 ```
-2026-09-30T05:13:42.874636Z [OrderService] Info : place, order_id=abc, total=42
+2026-10-03T03:01:39.771727Z [shop.example.com:orders] Info : ACTION: place_order, order_id=abc, total=42, logger=OrderService
+2026-10-03T03:01:39.771930Z [shop.example.com:orders] Info : EVENT: order_placed, order_id=abc, total=42, logger=OrderService
 ```
 
 It's a small API for apps that run on Android, iOS, macOS and the JVM, from one codebase, with no dependencies beyond the Kotlin standard library. It doesn't try to be a full logging framework. There's no file output, rotation or JSON here. The console logger is meant for development, tests and small apps, and on Android it writes to logcat. A production server should use a provider such as SLF4J and Logback behind the same calls, and that wrapper isn't built yet.
@@ -39,7 +41,7 @@ It's a small API for apps that run on Android, iOS, macOS and the JVM, from one 
 The defaults lean safe. Only errors are logged, stack traces are off, and keys like `password` and `email` are masked before an entry reaches a sink. When the masking has to guess, it hides more, not less. Those are guardrails, not guarantees, and [Limits](#limits) says where they stop.
 
 ```
-log.info(...)  ->  level check  ->  LogEntry  ->  policies (redact, filter)  ->  LogSink  ->  console or provider
+log.info(data)  ->  level check  ->  LogEntry  ->  policies (redact, filter)  ->  LogSink  ->  console or provider
 ```
 
 ## Start
@@ -68,43 +70,60 @@ Create a `Logs` once for the app, then ask it for loggers by name:
 import kiit.logs.LogLevel
 import kiit.logs.LogSettings
 import kiit.logs.Logs
+import kiit.logs.Source
+import kiit.logs.data.Action
 
-val logs = Logs.console(LogSettings.safe(origin = "shop.example.com").copy(level = LogLevel.Info))
+val logs = Logs.console(LogSettings.safe(Source("shop.example.com")).copy(level = LogLevel.Info))
 val log = logs.logger("OrderService")
 
-log.info("place", "order_id" to "abc", "total" to 42)
+log.info(Action("place_order", "order_id" to "abc", "total" to 42))
 ```
 
-`LogSettings.safe()` starts from the safe defaults, and `copy` changes one thing. The level is `Error` by default, so the `.copy(level = LogLevel.Info)` above is what lets `info` calls print. Without it, this example prints nothing. `Logs.console()` with no arguments uses `LogSettings.safe()`, which is enough for `Logs.console().logger("app")` when errors are all you need.
+`LogSettings.safe()` starts from the safe defaults, and `copy` changes one thing. With no argument its source is `app:`, so give it your own. The level is `Error` by default, so the `.copy(level = LogLevel.Info)` above is what lets `info` calls print. Without it, this example prints nothing. `Logs.console()` with no arguments uses `LogSettings.safe()`, which is enough for `Logs.console().logger("app")` when errors are all you need.
 
 There's a runnable example in [`samples/sample-kotlin`](./samples/sample-kotlin). Run it with `./gradlew :samples:sample-kotlin:run`.
 
 ## Concepts
 
-1. **Action and fields.** The first argument of `debug`, `info`, `warn`, `error` and `fatal` is the action, what was attempted. The rest are key/value pairs. This is the style to reach for first.
-2. **Origin and scope.** `origin` says who owns the system, set once for the app. `scope` says where inside it, like `accounts.signup`. They mean the same thing as in kiit-codes and kiit-service-id.
-3. **Levels.** `Verbose`, `Debug`, `Info`, `Warn`, `Error`, `Fatal`, and `Off`. Set the level to `Off` and nothing is logged. `Verbose` is the finest level, and it has its own `verbose(...)` method like the others. It has the same name as the lowest level on Android, and it isn't called trace, since trace already means a stack trace here and a request trace in monitoring tools.
-4. **Settings.** One `LogSettings` value holds the level, levels by name, stack trace mode, policies, origin, scope, error handler and clock. Level, stack traces and policies have no defaults on the constructor, so `LogSettings.safe()` is the way in.
-5. **Policies.** A `Policy` gets each entry before a sink sees it. It returns the entry, a changed copy, or null to drop it. `LogSettings.policies` is a list, and the policies run in order. The default list is one `RedactPolicy`, and `FilterPolicy` drops entries you don't want.
-6. **Redaction.** By default, fields whose key contains a sensitive word get their value replaced with `***`, or are dropped. Keys are compared without case, spaces, `_`, `-` or `.`, so `api_key` and `apiKey` are the same. The default matching is `Contains` on purpose. It hides `user_password` and `password_confirm`, and it also hides harmless keys such as `token_count`. Hiding too much is the safer mistake. Use `KeyMatch.Suffix` or `KeyMatch.Exact` for a precise list.
-7. **Stack traces.** `Off` (the default), `Summary` (type and message, then each cause) or `Full` (cut to 50 lines by default). The exception message is always part of the log line.
-8. **Logs and sinks.** `Logs` creates the loggers and keeps one logger per name. `Logs.console(settings)` prints, and `Logs(settings, sink)` sends everything to your own `LogSink`. A provider implements `LogSink` and does something else with an entry, so it never has to redo the level check or the policies.
-9. **Packages.** The main types are in `kiit.logs`: `Logger`, `Logs`, `LogFactory`, `LogSettings`, `LogEntry`, `LogLevel`, `StackTraces` and `NoLogger`. Sinks are in `kiit.logs.sinks` (`LogSink`, `ConsoleSink`, `CompositeSink`), and policies are in `kiit.logs.policies` (`Policy`, `FilterPolicy`, `RedactPolicy`, `ErrorHandler`).
+1. **Action, event and text.** Everything you log is a `LogData`. An `Action` is something about to be done, an `Event` is something that has happened, and `Text` is free form, for when neither fits. `Action` and `Event` take a name and key/value pairs, and optionally a `msg` and an exception. Reach for them first, since a name and fields can be searched.
+2. **Origin and scope.** `origin` says who owns the system, set once for the app. `scope` says where inside it, like `accounts.signup`. Together they are a `Source`, written `origin:scope`. They mean the same thing as in kiit-codes and kiit-service-id. A scope shouldn't contain a colon.
+3. **The console line.** `time [origin:scope] Level : prefix, fields, logger=name`, from the high level to the low level. The prefix is `ACTION: place_order` or `EVENT: order_placed`. The `msg` of an action or event prints as `msg="..."` after the prefix, and a `Text` prints its message as it is. `msg` and `logger` are reserved keys in this line. A source with no scope keeps its colon, `[shop.example.com:]`.
+4. **Levels.** `Verbose`, `Debug`, `Info`, `Warn`, `Error`, `Fatal`, and `Off`. Set the level to `Off` and nothing is logged. `Verbose` is the finest level, and it has its own `verbose(...)` method like the others. It has the same name as the lowest level on Android, and it isn't called trace, since trace already means a stack trace here and a request trace in monitoring tools.
+5. **Settings.** One `LogSettings` value holds the level, levels by name, stack trace mode, policies, source, error handler and clock. Level, stack traces and policies have no defaults on the constructor, so `LogSettings.safe()` is the way in.
+6. **Policies.** A `Policy` gets each entry before a sink sees it. It returns the entry, a changed copy, or null to drop it. `LogSettings.policies` is a list, and the policies run in order. The default list is one `RedactPolicy`, and `FilterPolicy` drops entries you don't want.
+7. **Redaction.** By default, fields whose key contains a sensitive word get their value replaced with `***`, or are dropped. Keys are compared without case, spaces, `_`, `-` or `.`, so `api_key` and `apiKey` are the same. The default matching is `Contains` on purpose. It hides `user_password` and `password_confirm`, and it also hides harmless keys such as `token_count`. Hiding too much is the safer mistake. Use `KeyMatch.Suffix` or `KeyMatch.Exact` for a precise list.
+8. **Stack traces.** `Off` (the default), `Summary` (type and message, then each cause) or `Full` (cut to 50 lines by default). The exception message is always part of the log line.
+9. **Logs and sinks.** `Logs` creates the loggers and keeps one logger per name and scope. `Logs.console(settings)` prints, and `Logs(settings, sink)` sends everything to your own `LogSink`. A provider implements `LogSink` and does something else with an entry, so it never has to redo the level check or the policies.
+10. **Packages.** The main types are in `kiit.logs`: `Logger`, `Logs`, `LogFactory`, `LogSettings`, `LogEntry`, `LogLevel`, `LogData`, `Prefix`, `Source`, `StackTraces` and `NoLogger`. `Action`, `Event` and `Text` are in `kiit.logs.data`. Sinks are in `kiit.logs.sinks` (`LogSink`, `ConsoleSink`, `CompositeSink`), and policies are in `kiit.logs.policies` (`Policy`, `FilterPolicy`, `RedactPolicy`, `ErrorHandler`).
 
 ## Usage
+
+**Log an action when something is about to happen, and an event when it has.** A `msg` adds detail to either:
+
+```kotlin
+log.info(Action("place_order", "order_id" to "abc"))
+log.info(Event("order_placed", "order_id" to "abc", "total" to 42))
+log.warn(Action("place_order", "order_id" to "abc", msg = "low stock"))
+```
+
+```
+2026-10-03T03:01:39.771727Z [shop.example.com:orders] Info : ACTION: place_order, order_id=abc, logger=OrderService
+2026-10-03T03:01:39.771930Z [shop.example.com:orders] Info : EVENT: order_placed, order_id=abc, total=42, logger=OrderService
+2026-10-03T03:01:39.772010Z [shop.example.com:orders] Warn : ACTION: place_order, msg="low stock", order_id=abc, logger=OrderService
+```
 
 **Fields are masked by their key**, before an entry reaches a sink:
 
 ```kotlin
 val signup = Logs.console(
-    LogSettings.safe(origin = "shop.example.com", scope = "accounts.signup").copy(level = LogLevel.Info)
+    LogSettings.safe(Source("shop.example.com", "accounts.signup")).copy(level = LogLevel.Info)
 ).logger("Signup")
 
-signup.info("signup", "email" to "a@b.com", "plan" to "pro")
+signup.info(Action("signup", "email" to "a@b.com", "plan" to "pro"))
 ```
 
 ```
-2026-09-30T05:13:42.884636Z [Signup] Info : accounts.signup signup, email=***, plan=pro
+2026-10-03T03:01:39.884636Z [shop.example.com:accounts.signup] Info : ACTION: signup, email=***, plan=pro, logger=Signup
 ```
 
 **Pass an exception**, and choose how much of it prints:
@@ -113,18 +132,20 @@ signup.info("signup", "email" to "a@b.com", "plan" to "pro")
 val settings = LogSettings.safe().copy(level = LogLevel.Info, stackTraces = StackTraces.Summary)
 val payments = Logs.console(settings).logger("Payments")
 
-payments.error("charge", IllegalStateException("card declined"), "order_id" to "abc")
+payments.error(Action("charge", "order_id" to "abc", ex = IllegalStateException("card declined")))
 ```
 
 ```
-2026-09-30T05:13:42.884782Z [Payments] Error : charge, card declined, order_id=abc
+2026-10-03T03:01:39.884782Z [app:] Error : ACTION: charge, msg="card declined", order_id=abc, logger=Payments
 IllegalStateException: card declined
 ```
 
-**Build expensive fields lazily.** The lambda only runs if the level is enabled:
+With no `msg`, the exception's message is used as the `msg`. With both, the exception's message goes after the `msg` and a colon.
+
+**Build expensive data lazily.** The lambda only runs if the level is enabled:
 
 ```kotlin
-log.debug("place") { listOf("total" to expensiveTotal()) }
+log.debug { Action("place_order", "total" to expensiveTotal()) }
 ```
 
 **Set levels by logger name.** A name covers the names under it, and the longest match wins:
@@ -140,7 +161,7 @@ val settings = LogSettings.safe().copy(
 
 ```kotlin
 val settings = LogSettings.safe().let {
-    it.copy(policies = it.policies + FilterPolicy { entry -> entry.action != "noisy" })
+    it.copy(policies = it.policies + FilterPolicy { entry -> entry.prefix?.value != "noisy" })
 }
 ```
 
@@ -170,23 +191,50 @@ The level is the only setting that changes at runtime, and it changes through th
 ```kotlin
 val requestLog = log.with("trace_id" to traceId)
 
-requestLog.info("place", "order_id" to id)   // fields: trace_id, order_id
+requestLog.info(Action("place_order", "order_id" to id))   // fields: trace_id, order_id
 ```
 
 The new logger shares the settings of the one it came from, so a level change applies to it too. The fields are redacted like any others.
 
-**Log free text** when there's no action to name. An exception's message goes after the text on the same line:
+**Give a logger its own scope.** It replaces the scope of the settings, and the origin stays:
 
 ```kotlin
-log.log(LogLevel.Warn, "payment slow")
-log.log(LogLevel.Error, "payment failed", IllegalStateException("card declined"))
-log.log(LogLevel.Debug) { "cache hits=${hits()}" }     // built only if Debug is enabled
+val logs = Logs.console(LogSettings.safe(Source("shop.example.com", "orders")).copy(level = LogLevel.Info))
+
+logs.logger("OrderService").info(Action("place_order"))
+logs.logger("PaymentService", scope = "orders.payment").info(Action("charge", "order_id" to "abc"))
 ```
 
 ```
-2026-09-30T05:13:42.855873Z [Free] Warn : payment slow
-2026-09-30T05:13:42.856070Z [Free] Error : payment failed: card declined
-2026-09-30T05:13:42.856278Z [Free] Debug : cache hits=42
+2026-10-03T03:01:39.777139Z [shop.example.com:orders] Info : ACTION: place_order, logger=OrderService
+2026-10-03T03:01:39.777210Z [shop.example.com:orders.payment] Info : ACTION: charge, order_id=abc, logger=PaymentService
+```
+
+A class name can differ between platforms, and a scope you choose doesn't, so the same scope on Android and iOS lines the entries up. Levels are still set by logger name. The same name with another scope is another logger.
+
+**Log free text** when there's no action or event to name. An exception's message goes after the text on the same line:
+
+```kotlin
+log.log(LogLevel.Warn, Text("payment slow"))
+log.log(LogLevel.Error, Text("payment failed", IllegalStateException("card declined")))
+log.log(LogLevel.Debug) { Text("cache hits=${hits()}") }     // built only if Debug is enabled
+```
+
+```
+2026-10-03T03:01:39.855873Z [shop.example.com:orders] Warn : payment slow, logger=Free
+2026-10-03T03:01:39.856070Z [shop.example.com:orders] Error : payment failed: card declined, logger=Free
+2026-10-03T03:01:39.856278Z [shop.example.com:orders] Debug : cache hits=42, logger=Free
+```
+
+**Log your own type.** `LogData` is an open interface, so another module can add its own. Every member has a default, so a type only overrides what it has:
+
+```kotlin
+class Job(name: String, runs: Int) : LogData {
+    override val prefix = Prefix("JOB", name)
+    override val fields = listOf("runs" to runs)
+}
+
+log.info(Job("nightly", 7))   // Info : JOB: nightly, runs=7, logger=Scheduler
 ```
 
 **Hold a logger in a class**, and call it like any other object:
@@ -194,7 +242,7 @@ log.log(LogLevel.Debug) { "cache hits=${hits()}" }     // built only if Debug is
 ```kotlin
 class OrderService(private val log: Logger) {
     fun place(id: String) {
-        log.info("place", "order_id" to id)
+        log.info(Action("place_order", "order_id" to id))
     }
 }
 ```
@@ -227,7 +275,7 @@ val noEmails = Policy { entry ->
 val settings = LogSettings.safe().copy(policies = listOf(RedactPolicy(), noEmails))
 ```
 
-**Write a provider** by implementing `LogSink`. `entry.text` is a ready to print line, `entry.fields` are the redacted pairs, and `entry.trace` is the exception rendered by the stack trace setting:
+**Write a provider** by implementing `LogSink`. `entry.text` is the body of a console line, `entry.prefix` and `entry.source` say what and where, `entry.fields` are the redacted pairs, and `entry.trace` is the exception rendered by the stack trace setting:
 
 ```kotlin
 class ListSink : LogSink {
@@ -238,7 +286,7 @@ class ListSink : LogSink {
     }
 }
 
-val logs = Logs(LogSettings.safe(origin = "shop.example.com"), ListSink())
+val logs = Logs(LogSettings.safe(Source("shop.example.com")), ListSink())
 val log = logs.logger("OrderService")
 ```
 
@@ -290,7 +338,7 @@ val report = LogSettings.safe().copy(
 val silent = LogSettings.safe().copy(errors = ErrorHandler { _, _, _ -> })
 ```
 
-By default logging never throws into your code, which is the safe choice on a phone. The first 3 errors are printed, with the stage, the logger name and action, and the error, but never the field values. After that it stays quiet, so a broken sink or policy doesn't go unnoticed and doesn't flood the output. `ErrorHandler.Throw` is for tests and development. A handler is told the stage (`Build`, `Policy`, `Sink` or `Lifecycle`), the error, and the entry if there is one. It runs on the calling thread, so keep it quick, and if it throws that is ignored.
+By default logging never throws into your code, which is the safe choice on a phone. The first 3 errors are printed, with the stage, the logger name and prefix value, and the error, but never the field values. After that it stays quiet, so a broken sink or policy doesn't go unnoticed and doesn't flood the output. `ErrorHandler.Throw` is for tests and development. A handler is told the stage (`Build`, `Policy`, `Sink` or `Lifecycle`), the error, and the entry if there is one. It runs on the calling thread, so keep it quick, and if it throws that is ignored.
 
 What is logged when something fails depends on the stage. A policy that throws, such as a redaction with a bug, drops the entry, so nothing unredacted gets out. In that case the handler gets no entry, because the one in flight may not be redacted yet. A lazy message that throws drops the entry too. With a `CompositeSink`, the other sinks still run, and then the first error goes to the handler with the rest attached to it.
 
@@ -300,13 +348,13 @@ What is logged when something fails depends on the stage. A policy that throws, 
 val sink = MemorySink()
 val logs = Logs(LogSettings.safe().copy(level = LogLevel.Info), sink)
 
-logs.logger("orders").info("place", "order_id" to "abc")
+logs.logger("orders").info(Action("place_order", "order_id" to "abc"))
 
-assertEquals("place", sink.entries.single().action)
-assertEquals(listOf("order_id" to "abc"), sink.find("place").single().fields)
+assertEquals("place_order", sink.entries.single().prefix?.value)
+assertEquals(listOf("order_id" to "abc"), sink.find("place_order").single().fields)
 ```
 
-`entries` is a snapshot in the order logged, `find(action)` returns the entries with that action, and `clear()` empties it between tests. `flushed` and `closed` count the calls to `flush()` and `close()`.
+`entries` is a snapshot in the order logged, `find(value)` returns the entries whose prefix has that value, for an action or an event, and `clear()` empties it between tests. `flushed` and `closed` count the calls to `flush()` and `close()`.
 
 **Test with a fixed time** by replacing `LogSettings.clock` with your own `kotlin.time.Clock`.
 
