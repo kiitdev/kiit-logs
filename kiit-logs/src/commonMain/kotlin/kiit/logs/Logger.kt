@@ -96,8 +96,8 @@ class Logger private constructor(
 
     /**
      * Logs at any level. The data is built before the level is checked, see the lambda form for data that is
-     * expensive to build. An exception in the data has its message added to the message after a colon:
-     * "payment failed: card declined".
+     * expensive to build. The entry keeps the message and the exception of the data as they are, and the console
+     * text adds the exception's message after the message and a colon: "payment failed: card declined".
      */
     fun log(level: LogLevel, data: LogData) {
         send(level) { s -> build(s, level, data) }
@@ -137,14 +137,6 @@ class Logger private constructor(
 
     fun fatal(data: () -> LogData) = log(LogLevel.Fatal, data)
 
-    // The message, then the exception's message after a colon when there is one: "payment failed: card declined"
-    private fun textWith(msg: String?, ex: Throwable?): String =
-        when {
-            ex == null -> msg
-            msg.isNullOrEmpty() -> ex.message
-            else -> ex.message?.let { "$msg: $it" } ?: msg
-        } ?: ""
-
     /**
      * A logger that adds these fields to every entry it logs, e.g. an id for one request:
      *
@@ -180,7 +172,7 @@ class Logger private constructor(
         return LogEntry(
             name = name,
             level = level,
-            msg = textWith(data.msg, ex),
+            msg = data.msg,
             ex = ex,
             prefix = data.prefix,
             source = if (scope == null) s.source else s.source.copy(scope = scope),

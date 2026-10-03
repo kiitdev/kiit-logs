@@ -22,7 +22,7 @@ import kiit.logs.LogData
  *     log.error(Text("charge failed", ex))
  *
  * @param msg the text
- * @param ex the exception, if there is one. Its message is added after the text
+ * @param ex the exception, if there is one. The console line adds its message after the text
  */
 class Text(
     override val msg: String,

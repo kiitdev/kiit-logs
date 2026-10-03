@@ -32,6 +32,6 @@ class Event(
     override val msg: String = "",
     override val ex: Throwable? = null
 ) : LogData {
-    override val prefix: Prefix = Prefix("EVENT", name)
+    override val prefix: Prefix = Prefix(Prefix.EVENT, name)
     override val fields: List<Pair<String, Any?>> = fields.asList()
 }

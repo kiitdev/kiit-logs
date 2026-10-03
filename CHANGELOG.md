@@ -16,9 +16,11 @@ All notable changes to kiit-logs are documented here. Format follows
   enabled. Entries carry `prefix`, `source`, redacted `fields` and `trace`.
 - The built-in `LogData` types in `kiit.logs.data`: `Action` (something about to be done, `ACTION: place_order`),
   `Event` (something that has happened, `EVENT: order_placed`) and `Text` (free form). `Action` and `Event` take a name,
-  fields, and an optional `msg` and `ex`. An exception's message goes after the text on the same line:
+  fields, and an optional `msg` and `ex`. `LogEntry.msg` is the message as it was given and `LogEntry.ex` keeps the
+  exception, so a sink gets both. The console text adds the exception's message after the text on the same line:
   `payment failed: card declined`.
-- `Prefix(label, value)` and `Source(origin, scope = "")` in `kiit.logs`. `Source.text` is `origin:scope`, the same form
+- `Prefix(label, value)` and `Source(origin, scope = "")` in `kiit.logs`. The labels of the built-in types are the
+  constants `Prefix.ACTION` and `Prefix.EVENT`, for code that treats them differently. `Source.text` is `origin:scope`, the same form
   as a service id in kiit-service-id.
 - `LogSettings` and `LogSettings.safe()`: level, levels by logger name, stack trace mode, policies, source,
   error handler, clock and trace line cap. `LogSettings.safe()` uses the source `app:` when it is given none.

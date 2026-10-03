@@ -20,7 +20,8 @@ import kotlin.time.Instant
  * @param source where the entry comes from: the origin from [LogSettings.source] and the scope, which is the
  *               logger's own scope when it has one, e.g. "orders.checkout"
  * @param fields key/value pairs, already redacted
- * @param msg free text, used when there is no prefix or as detail for one
+ * @param msg free text as it was given, used when there is no prefix or as detail for one. The exception's message
+ *            is not in it, the entry keeps the exception apart in [ex]. The console [text] adds that message
  * @param time when the entry was created, from [LogSettings.clock]
  * @param trace the exception rendered per [LogSettings.stackTraces], null when there is none or it is Off.
  *              A sink that prints exceptions should use this, so the setting applies to it too
@@ -44,7 +45,9 @@ data class LogEntry(
      * Display form of the body of a console line, built from the parts that are set and joined with ", ":
      *
      * 1. The prefix as "label: value", e.g. "ACTION: place_order"
-     * 2. The message. With no prefix it is the text as it is. With one it is detail, as msg="low stock"
+     * 2. The message, followed by the exception's message after a colon when there is an exception, e.g.
+     *    "payment failed: card declined". With no message it is the exception's message alone. With no prefix it
+     *    is the text as it is. With one it is detail, as msg="low stock: card declined"
      * 3. The fields as k=v
      * 4. The logger name as logger=name, when there is one
      *
@@ -56,15 +59,24 @@ data class LogEntry(
     val text: String
         get() {
             val head = prefix?.let { "${it.label}: ${it.value}" }
+            val message = messageWithException()
             val detail =
                 when {
-                    msg.isEmpty() -> null
-                    prefix == null -> msg
-                    else -> "msg=\"${escaped(msg)}\""
+                    message.isEmpty() -> null
+                    prefix == null -> message
+                    else -> "msg=\"${escaped(message)}\""
                 }
             val pairs = fields.map { "${it.first}=${it.second}" }
             val logger = if (name.isEmpty()) null else "logger=$name"
             return (listOfNotNull(head, detail) + pairs + listOfNotNull(logger)).joinToString(", ")
+        }
+
+    // The message, then the exception's message after a colon when there is one: "payment failed: card declined"
+    private fun messageWithException(): String =
+        when {
+            ex == null -> msg
+            msg.isEmpty() -> ex.message ?: ""
+            else -> ex.message?.let { "$msg: $it" } ?: msg
         }
 
     private fun escaped(value: String): String = value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")

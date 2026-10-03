@@ -32,6 +32,6 @@ class Action(
     override val msg: String = "",
     override val ex: Throwable? = null
 ) : LogData {
-    override val prefix: Prefix = Prefix("ACTION", name)
+    override val prefix: Prefix = Prefix(Prefix.ACTION, name)
     override val fields: List<Pair<String, Any?>> = fields.asList()
 }
