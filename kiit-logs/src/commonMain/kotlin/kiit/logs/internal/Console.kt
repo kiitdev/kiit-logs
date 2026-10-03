@@ -16,7 +16,8 @@ package kiit.logs.internal
 import kiit.logs.LogEntry
 
 /**
- * Writes an entry to the platform console. JVM and iOS print "time [name] Level : text".
+ * Writes an entry to the platform console. The JVM prints "time [name] Level : text".
+ * Apple (iOS and macOS) writes "[name] Level : text" with NSLog, which adds its own time and process prefix.
  * Android writes to logcat with the level and the name as the tag, since logcat adds its own time and level.
  * The entry is passed whole, so a platform can use more of it, e.g. the scope or the fields.
  *
@@ -24,6 +25,6 @@ import kiit.logs.LogEntry
  * @param text the display text to write, already built from the entry and its trace
  * @param maxLength longest piece written in one call, in characters. Only Android uses it, because
  *                  logcat cuts a message at about 4000 characters, so a longer text is written as
- *                  several pieces. The JVM and iOS ignore it. 0 means no limit
+ *                  several pieces. The JVM and Apple ignore it. 0 means no limit
  */
 internal expect fun consoleWrite(entry: LogEntry, text: String, maxLength: Int)

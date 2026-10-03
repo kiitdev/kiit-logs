@@ -17,6 +17,7 @@ import kiit.logs.internal.ErrorGuard
 import kiit.logs.internal.LogState
 import kiit.logs.internal.SettingsRef
 import kiit.logs.internal.StackTraceBuilder
+import kiit.logs.internal.currentThreadName
 import kiit.logs.policies.ErrorHandler.Stage
 import kiit.logs.policies.Policies
 import kiit.logs.sinks.LogSink
@@ -256,6 +257,7 @@ class Logger private constructor(
             fields = bound + fields,
             time = s.clock.now(),
             trace = ex?.let { StackTraceBuilder.render(s.stackTraces, it, s.maxTraceLines) },
+            thread = currentThreadName(),
         )
     }
 

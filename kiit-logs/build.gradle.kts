@@ -30,7 +30,7 @@ kotlin {
         }
     }
 
-    listOf(iosArm64(), iosSimulatorArm64(), iosX64()).forEach {
+    listOf(iosArm64(), iosSimulatorArm64(), iosX64(), macosArm64(), macosX64()).forEach {
         it.binaries.framework {
             baseName = "KiitLogs"
             isStatic = true
@@ -118,7 +118,7 @@ detekt {
         "src/commonMain/kotlin",
         "src/jvmMain/kotlin",
         "src/androidMain/kotlin",
-        "src/iosMain/kotlin",
+        "src/appleMain/kotlin",
     )
 }
 

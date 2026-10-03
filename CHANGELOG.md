@@ -29,6 +29,9 @@ All notable changes to kiit-logs are documented here. Format follows
   `Logs.console()` uses `LogSettings.safe()`. A logger without a name is named `root` (`LogFactory.DEFAULT_NAME`).
 - `Logger.with(...)` to add fields to every entry, `NoLogger`, `LogLevel.Verbose` (the finest level, with `verbose(...)` methods) and `LogLevel.Off`.
 - Android writes to logcat with the real priority and tag, and splits long entries (default 4000 characters).
+- macOS targets (`macosArm64`, `macosX64`). iOS and macOS share the console writer in `appleMain`.
+- `LogEntry.thread`: the name of the thread that created the entry. The thread name on the JVM and Android, the
+  NSThread name on Apple, and `"main"` for the Apple main thread when it has no name. It is not part of `text`.
 - A Kotlin sample app in `samples/sample-kotlin`, run with `./gradlew :samples:sample-kotlin:run`.
 
 ### Changed (from `kiit.common.log`, for anyone moving over)
@@ -54,6 +57,11 @@ All notable changes to kiit-logs are documented here. Format follows
   level, not the entry's, and had literal `+ : +` text. Field keys are printed as written.
 - Stack traces are off by default. The exception message is always part of the log line.
 - Field key case: `LogUtils.toKey` lowercased keys in the output, so `orderId` printed as `orderid`. It no longer does.
+
+- Apple console output uses `NSLog` instead of `println`. `NSLog` adds its own time and process prefix, so the line
+  is `[name] Level : text` with no timestamp of ours.
+- `LogEntry` has a new last constructor parameter, `thread`. Code that builds entries by name is not affected. Code
+  that destructures one with `componentN` or calls the constructor positionally past `trace` needs a look.
 
 ### Removed
 - `LogLevel.parse` (it always returned `Debug`, because of a case bug), `LogSupport.trace`, `LogUtils`,

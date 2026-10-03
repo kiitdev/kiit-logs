@@ -17,7 +17,8 @@ import kiit.logs.LogEntry
 import kiit.logs.internal.consoleWrite
 
 /**
- * Prints entries to the console: logcat on Android, standard output on the JVM and iOS.
+ * Prints entries to the console: logcat on Android, NSLog on iOS and macOS,
+ * standard output on the JVM.
  * For development, tests and small apps. Nothing is buffered here, so flush and close do nothing.
  *
  * @param maxLength on Android, the longest text written in one logcat call, in characters. Longer entries
