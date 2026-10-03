@@ -48,11 +48,13 @@ class Logger private constructor(
     private val state: LogState,
     val name: String,
     private val sink: LogSink,
-    private val bound: List<Pair<String, Any?>>
+    private val bound: List<Pair<String, Any?>>,
+    private val scope: String?
 ) {
-    // Loggers come from a [Logs], which gives all of its loggers the one settings reference it holds
-    internal constructor(source: SettingsRef, name: String, sink: LogSink) :
-        this(LogState(source, name), name, sink, emptyList())
+    // Loggers come from a [Logs], which gives all of its loggers the one settings reference it holds. A scope of null
+    // means the scope of the settings' source, see [LogFactory.logger]
+    internal constructor(source: SettingsRef, name: String, sink: LogSink, scope: String? = null) :
+        this(LogState(source, name), name, sink, emptyList(), scope)
 
     /**
      * The current settings, for reading. The level is the one setting that can change while the app runs, and
@@ -152,7 +154,7 @@ class Logger private constructor(
      * It shares this logger's settings, so a level change applies to it too. The fields go through the policies
      * like any others.
      */
-    fun with(vararg fields: Pair<String, Any?>): Logger = Logger(state, name, sink, bound + fields.asList())
+    fun with(vararg fields: Pair<String, Any?>): Logger = Logger(state, name, sink, bound + fields.asList(), scope)
 
     /**
      * The one path every log call takes: level check, build the entry, run the policies, deliver. Anything that
@@ -171,7 +173,8 @@ class Logger private constructor(
         ErrorGuard.guard(s.errors, Stage.Sink, delivered) { sink.emit(delivered) }
     }
 
-    // One entry from the data, plus the settings snapshot it is stamped from
+    // One entry from the data, plus the settings snapshot it is stamped from. The source is the settings' source, with
+    // this logger's scope in place of the settings' scope when it has one
     private fun build(s: LogSettings, level: LogLevel, data: LogData): LogEntry {
         val ex = data.ex
         return LogEntry(
@@ -180,7 +183,7 @@ class Logger private constructor(
             msg = textWith(data.msg, ex),
             ex = ex,
             prefix = data.prefix,
-            source = s.source,
+            source = if (scope == null) s.source else s.source.copy(scope = scope),
             fields = bound + data.fields,
             time = s.clock.now(),
             trace = ex?.let { StackTraceBuilder.render(s.stackTraces, it, s.maxTraceLines) },
