@@ -85,4 +85,22 @@ class ConcurrencyTests {
         assertEquals(names.size, factory.settings.levels.size)
         names.forEach { assertEquals(LogLevel.Debug, factory.logger(it).level, it) }
     }
+
+    @Test
+    fun clearing_levels_from_many_threads_keeps_exactly_the_names_left_set() {
+        val factory = Logs(testSettings(LogLevel.Error), MemorySink())
+        val names = (0 until 8).flatMap { n -> (0 until 100).map { i -> "t$n.n$i" } }
+        names.forEach { factory.logger(it) }
+        // Each thread sets its names and clears the odd ones, while thread 0 also changes the global level
+        runThreads(8) { n ->
+            repeat(100) { i ->
+                factory.setLevel("t$n.n$i", LogLevel.Debug)
+                if (i % 2 == 1) factory.setLevel("t$n.n$i", null)
+                if (n == 0 && i % 10 == 0) factory.setLevel(LogLevel.Info)
+            }
+        }
+        val kept = names.filter { it.substringAfter(".n").toInt() % 2 == 0 }.toSet()
+        assertEquals(kept, factory.settings.levels.keys)
+        names.forEach { assertEquals(if (it in kept) LogLevel.Debug else LogLevel.Info, factory.logger(it).level, it) }
+    }
 }

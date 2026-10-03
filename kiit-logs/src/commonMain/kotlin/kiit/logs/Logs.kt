@@ -51,10 +51,7 @@ class Logs(
     // Copy-on-write, so reads and lookups need no lock
     private val loggers = AtomicReference<Map<String, Logger>>(emptyMap())
 
-    override fun logger(cls: KClass<*>): Logger {
-        val key = cls.qualifiedName ?: cls.simpleName ?: LogFactory.DEFAULT_NAME
-        return cached(key)
-    }
+    override fun logger(cls: KClass<*>): Logger = cached(nameOf(cls))
 
     override fun logger(name: String?): Logger = cached(name ?: LogFactory.DEFAULT_NAME)
 
@@ -63,8 +60,18 @@ class Logs(
         current.update { it.copy(level = level) }
     }
 
-    override fun setLevel(name: String, level: LogLevel) {
-        current.update { it.copy(levels = it.levels + (name to level)) }
+    override fun setLevel(name: String, level: LogLevel?) {
+        current.update { settings ->
+            val levels =
+                if (level == null) {
+                    // a copy of the map without this name
+                    settings.levels - name
+                } else {
+                    // a copy with this name added, or replaced
+                    settings.levels + (name to level)
+                }
+            settings.copy(levels = levels)
+        }
     }
 
     override fun flush() {
