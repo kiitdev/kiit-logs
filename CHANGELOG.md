@@ -27,6 +27,10 @@ All notable changes to kiit-logs are documented here. Format follows
 - `Logs`, the `LogFactory` you use: `Logs.console(settings)` and `Logs(settings, sink)`. It creates loggers with
   `logger(name)` and `logger(cls)`, caches them by name, and has `setLevel` (global or by name), `flush` and `close`.
   `Logs.console()` uses `LogSettings.safe()`. A logger without a name is named `root` (`LogFactory.DEFAULT_NAME`).
+- `setLevel(name, null)` removes the level of a name, atomically. The name then follows the longest remaining prefix,
+  or the global level. `setLevel(cls, level)` sets the level for a class, named the way `logger(cls)` names it.
+  `setLevel(name, level)` now takes a `LogLevel?`, so a `LogFactory` implementation that overrides it must change its
+  parameter to `LogLevel?`.
 - `Logger.with(...)` to add fields to every entry, `NoLogger`, `LogLevel.Verbose` (the finest level, with `verbose(...)` methods) and `LogLevel.Off`.
 - Android writes to logcat with the real priority and tag, and splits long entries (default 4000 characters).
 - macOS targets (`macosArm64`, `macosX64`). iOS and macOS share the console writer in `appleMain`.

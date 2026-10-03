@@ -8,6 +8,8 @@ import kotlin.test.assertNotSame
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
+private class Orders
+
 class LevelTests {
     private val byName =
         LogSettings.safe().copy(
@@ -120,6 +122,60 @@ class LevelTests {
         factory.setLevel(LogLevel.Warn)
         assertEquals(LogLevel.Debug, factory.logger("com.shop.orders").level)
         assertEquals(LogLevel.Warn, factory.logger("com.other").level)
+    }
+
+    @Test
+    fun clearing_a_name_follows_the_global_level_again() {
+        val factory = Logs(testSettings(LogLevel.Error), MemorySink())
+        val existing = factory.logger("com.shop.orders")
+        factory.setLevel("com.shop.orders", LogLevel.Debug)
+        factory.setLevel("com.shop.orders", LogLevel.Error)
+        factory.setLevel("com.shop.orders", null)
+        factory.setLevel(LogLevel.Info)
+        assertEquals(LogLevel.Info, existing.level)
+        assertEquals(LogLevel.Info, factory.logger("com.shop.orders.checkout").level)
+        assertTrue(factory.settings.levels.isEmpty())
+    }
+
+    @Test
+    fun clearing_a_name_falls_back_to_the_longest_remaining_prefix() {
+        val factory = Logs(testSettings(LogLevel.Error), MemorySink())
+        factory.setLevel("com.shop", LogLevel.Debug)
+        factory.setLevel("com.shop.orders", LogLevel.Warn)
+        val existing = factory.logger("com.shop.orders.checkout")
+        assertEquals(LogLevel.Warn, existing.level)
+        factory.setLevel("com.shop.orders", null)
+        assertEquals(LogLevel.Debug, existing.level)
+        assertEquals(mapOf("com.shop" to LogLevel.Debug), factory.settings.levels)
+    }
+
+    @Test
+    fun clearing_a_name_that_was_never_set_changes_nothing() {
+        val factory = Logs(testSettings(LogLevel.Error), MemorySink())
+        factory.setLevel("com.shop", LogLevel.Debug)
+        factory.setLevel("com.other", null)
+        assertEquals(mapOf("com.shop" to LogLevel.Debug), factory.settings.levels)
+        assertEquals(LogLevel.Error, factory.logger("com.other").level)
+    }
+
+    @Test
+    fun set_level_by_class_uses_the_name_of_logger() {
+        val factory = Logs(testSettings(LogLevel.Error), MemorySink())
+        factory.setLevel(Orders::class, LogLevel.Debug)
+        assertEquals(mapOf(nameOf(Orders::class) to LogLevel.Debug), factory.settings.levels)
+        assertEquals(LogLevel.Debug, factory.logger(Orders::class).level)
+        factory.setLevel(Orders::class, null)
+        assertTrue(factory.settings.levels.isEmpty())
+        assertEquals(LogLevel.Error, factory.logger(Orders::class).level)
+    }
+
+    @Test
+    fun set_level_by_an_anonymous_class_sets_the_root_name_only() {
+        val factory = Logs(testSettings(LogLevel.Error), MemorySink())
+        factory.setLevel(object {}::class, LogLevel.Debug)
+        assertEquals(mapOf(LogFactory.DEFAULT_NAME to LogLevel.Debug), factory.settings.levels)
+        assertEquals(LogLevel.Debug, factory.logger().level)
+        assertEquals(LogLevel.Error, factory.logger("com.other").level)
     }
 
     @Test

@@ -150,13 +150,20 @@ val settings = LogSettings.safe().let {
 logs.setLevel(LogLevel.Debug)
 ```
 
-Or one name and the names under it:
+Or one name and the names under it, or a class:
 
 ```kotlin
 logs.setLevel("com.shop.orders", LogLevel.Debug)
+logs.setLevel(OrderService::class, LogLevel.Debug)
 ```
 
-The level is the only setting that changes at runtime, and it changes through the `Logs`. A level set for a name stays until you set it again. A logger's settings can be read (`log.settings`, `log.level`) but not replaced.
+A null level removes the level of a name. It then follows the longest remaining prefix, or the global level:
+
+```kotlin
+logs.setLevel("com.shop.orders", null)
+```
+
+The level is the only setting that changes at runtime, and it changes through the `Logs`. A logger's settings can be read (`log.settings`, `log.level`) but not replaced.
 
 **Add fields to every entry of a logger**, such as an id for one request:
 
@@ -313,7 +320,7 @@ This is a small logger. Here is what it doesn't do.
 4. **Trace ids come from elsewhere.** If you use a tracing agent, it puts the ids in the logging context and a provider such as SLF4J passes them along. kiit-logs doesn't create them or read that context. Use `log.with(...)` to attach an id yourself.
 5. **Flat fields.** Values are plain key/value pairs. There's no nesting and no schema for action names.
 6. **Levels are fixed.** There are no custom levels.
-7. **Names are strings.** A level applies to a name and the names under it, but there are no logger objects with parents, and a level set for a name can't be removed, only set again.
+7. **Names are strings.** A level applies to a name and the names under it, but there are no logger objects with parents.
 8. **Not 1.0.** The API is still moving.
 
 ## Requirements
