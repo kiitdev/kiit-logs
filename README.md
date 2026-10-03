@@ -287,6 +287,20 @@ By default logging never throws into your code, which is the safe choice on a ph
 
 What is logged when something fails depends on the stage. A policy that throws, such as a redaction with a bug, drops the entry, so nothing unredacted gets out. In that case the handler gets no entry, because the one in flight may not be redacted yet. A lazy message that throws drops the entry too. With a `CompositeSink`, the other sinks still run, and then the first error goes to the handler with the rest attached to it.
 
+**Test your logging** with `MemorySink`. It keeps the entries it receives and is safe to use from several threads. The policies run before a sink, so the fields it holds are already redacted:
+
+```kotlin
+val sink = MemorySink()
+val logs = Logs(LogSettings.safe().copy(level = LogLevel.Info), sink)
+
+logs.logger("orders").info("place", "order_id" to "abc")
+
+assertEquals("place", sink.entries.single().action)
+assertEquals(listOf("order_id" to "abc"), sink.find("place").single().fields)
+```
+
+`entries` is a snapshot in the order logged, `find(action)` returns the entries with that action, and `clear()` empties it between tests. `flushed` and `closed` count the calls to `flush()` and `close()`.
+
 **Test with a fixed time** by replacing `LogSettings.clock` with your own `kotlin.time.Clock`.
 
 ## Limits

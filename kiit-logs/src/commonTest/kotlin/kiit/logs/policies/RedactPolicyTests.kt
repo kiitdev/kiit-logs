@@ -1,7 +1,7 @@
 package kiit.logs.policies
 
-import kiit.logs.MemorySink
 import kiit.logs.fields
+import kiit.logs.sinks.MemorySink
 import kiit.logs.testLogger
 import kiit.logs.testSettings
 import kotlin.test.Test

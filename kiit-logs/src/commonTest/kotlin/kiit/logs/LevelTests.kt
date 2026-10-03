@@ -1,6 +1,7 @@
 package kiit.logs
 
 import kiit.logs.sinks.ConsoleSink
+import kiit.logs.sinks.MemorySink
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotSame

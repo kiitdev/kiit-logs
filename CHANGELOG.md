@@ -22,6 +22,8 @@ All notable changes to kiit-logs are documented here. Format follows
 - `ErrorHandler` with `ErrorHandler.printing()` as the default (prints the first 3 errors, never throws) and
   `ErrorHandler.Throw` for tests. `ErrorHandler.Stage` says where something failed.
 - Sinks in `kiit.logs.sinks`: `LogSink` (`emit`, `flush`, `close`, `rawFor`), `ConsoleSink` and `CompositeSink`.
+- `MemorySink` in `kiit.logs.sinks`, for testing an app's logging. It keeps the entries it receives, is safe to use from
+  several threads, and has `entries`, `find(action)`, `clear()` and the `flushed` and `closed` call counts.
 - `Logs`, the `LogFactory` you use: `Logs.console(settings)` and `Logs(settings, sink)`. It creates loggers with
   `logger(name)` and `logger(cls)`, caches them by name, and has `setLevel` (global or by name), `flush` and `close`.
   `Logs.console()` uses `LogSettings.safe()`. A logger without a name is named `root` (`LogFactory.DEFAULT_NAME`).
