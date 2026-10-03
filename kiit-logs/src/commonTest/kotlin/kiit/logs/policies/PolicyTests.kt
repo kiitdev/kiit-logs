@@ -47,10 +47,10 @@ class PolicyTests {
     @Test
     fun filter_keeps_what_the_predicate_accepts() {
         val sink = MemorySink()
-        val log = logger(sink, FilterPolicy { it.action != "noisy" })
+        val log = logger(sink, FilterPolicy { it.prefix?.value != "noisy" })
         log.info("noisy")
         log.info("kept")
-        assertEquals(listOf("kept"), sink.entries.map { it.action })
+        assertEquals(listOf("kept"), sink.entries.map { it.prefix?.value })
     }
 
     @Test

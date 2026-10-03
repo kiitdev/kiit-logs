@@ -25,7 +25,7 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
  *     val sink = MemorySink()
  *     val logs = Logs(LogSettings.safe().copy(level = LogLevel.Info), sink)
  *     logs.logger("orders").info("place", "order_id" to "abc")
- *     assertEquals("place", sink.entries.single().action)
+ *     assertEquals("place", sink.entries.single().prefix?.value)
  */
 @OptIn(ExperimentalAtomicApi::class)
 class MemorySink : LogSink {
@@ -52,9 +52,10 @@ class MemorySink : LogSink {
         get() = closes.load()
 
     /**
-     * The entries with this action, in order.
+     * The entries whose prefix has this value, e.g. the name of an action or an event, in order. The label is not
+     * compared.
      */
-    fun find(action: String): List<LogEntry> = entries.filter { it.action == action }
+    fun find(value: String): List<LogEntry> = entries.filter { it.prefix?.value == value }
 
     /**
      * Removes the entries, e.g. between tests.

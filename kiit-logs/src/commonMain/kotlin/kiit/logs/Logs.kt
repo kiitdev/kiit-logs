@@ -26,7 +26,7 @@ import kotlin.reflect.KClass
  * The [LogFactory] you use: creates loggers that all send to one [LogSink], and caches them by name so
  * logger(name) returns the same logger for the same name. Settings are always passed in, there is no global state.
  *
- *     val logs = Logs.console(LogSettings.safe(origin = "shop.example.com"))   // print to the console
+ *     val logs = Logs.console(LogSettings.safe(Source("shop.example.com")))   // print to the console
  *     val logs = Logs(LogSettings.safe(), MySink())                            // or use your own sink
  *     val log = logs.logger(OrderService::class)
  *     logs.setLevel(LogLevel.Debug)                                            // changes every logger, at runtime

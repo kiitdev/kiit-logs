@@ -20,7 +20,7 @@ class LogsTests {
         log.debug("skipped")
         log.info("place", "order_id" to "abc")
         assertEquals(1, sink.entries.size)
-        assertEquals("place", sink.entries[0].action)
+        assertEquals("place", sink.entries[0].prefix?.value)
         assertEquals("orders", sink.entries[0].name)
         assertEquals(fixedTime, sink.entries[0].time)
     }
@@ -57,7 +57,7 @@ class LogsTests {
         log.info("before")
         factory.setLevel(LogLevel.Info)
         log.info("after")
-        assertEquals(listOf("after"), sink.entries.map { it.action })
+        assertEquals(listOf("after"), sink.entries.map { it.prefix?.value })
     }
 
     @Test

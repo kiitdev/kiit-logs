@@ -13,17 +13,17 @@ import kotlin.test.assertTrue
 
 class LoggerTests {
     @Test
-    fun structured_entry_has_action_fields_origin_scope_and_time() {
+    fun structured_entry_has_prefix_fields_source_and_time() {
         val sink = MemorySink()
-        val log = testLogger(testSettings().copy(origin = "shop.example.com", scope = "orders"), sink, "OrderService")
+        val log = testLogger(testSettings().copy(source = Source("shop.example.com", "orders")), sink, "OrderService")
         log.info("place", "order_id" to "abc", "total" to 42)
 
         val entry = sink.entries.single()
         assertEquals("OrderService", entry.name)
         assertEquals(LogLevel.Info, entry.level)
-        assertEquals("place", entry.action)
-        assertEquals("shop.example.com", entry.origin)
-        assertEquals("orders", entry.scope)
+        assertEquals(Prefix("ACTION", "place"), entry.prefix)
+        assertEquals("shop.example.com", entry.source.origin)
+        assertEquals("orders", entry.source.scope)
         assertEquals(fields("order_id" to "abc", "total" to 42), entry.fields)
         assertEquals(fixedTime, entry.time)
         assertEquals("", entry.msg)
@@ -71,7 +71,7 @@ class LoggerTests {
         testLogger(testSettings(), sink, "L").log(LogLevel.Warn, "payment slow")
         val entry = sink.entries.single()
         assertEquals("payment slow", entry.msg)
-        assertNull(entry.action)
+        assertNull(entry.prefix)
     }
 
     @Test
@@ -125,7 +125,7 @@ class LoggerTests {
         log.verbose("plain", "k" to 1)
         log.verbose("with_exception", ex, "k" to 2)
         log.verbose("lazy", ex) { listOf("k" to 3) }
-        assertEquals(listOf("plain", "with_exception", "lazy"), sink.entries.map { it.action })
+        assertEquals(listOf("plain", "with_exception", "lazy"), sink.entries.map { it.prefix?.value })
         assertEquals(listOf(LogLevel.Verbose, LogLevel.Verbose, LogLevel.Verbose), sink.entries.map { it.level })
         assertEquals(listOf<Throwable?>(null, ex, ex), sink.entries.map { it.ex })
         assertEquals(listOf(1, 2, 3), sink.entries.map { it.fields.single().second })
@@ -217,14 +217,14 @@ class LoggerTests {
     @Test
     fun one_call_uses_one_snapshot_of_the_settings() {
         val sink = MemorySink()
-        val log = testLogger(testSettings().copy(origin = "before"), sink, "L")
+        val log = testLogger(testSettings().copy(source = Source("before")), sink, "L")
         // The lambda runs during the call, so this changes the settings in the middle of it
         log.log(LogLevel.Info) {
-            log.settings = log.settings.copy(origin = "after")
+            log.settings = log.settings.copy(source = Source("after"))
             "first"
         }
         log.log(LogLevel.Info) { "second" }
-        assertEquals(listOf("before", "after"), sink.entries.map { it.origin })
+        assertEquals(listOf("before", "after"), sink.entries.map { it.source.origin })
     }
 
     @Test
@@ -257,7 +257,7 @@ class LoggerTests {
         }
         assertEquals(1, calls)
         val entry = sink.entries.single()
-        assertEquals("place", entry.action)
+        assertEquals("place", entry.prefix?.value)
         assertEquals(fields("total" to 42), entry.fields)
     }
 
@@ -279,7 +279,7 @@ class LoggerTests {
         log.info("hidden")
         log.settings = log.settings.copy(level = LogLevel.Info)
         log.info("shown")
-        assertEquals(listOf("shown"), sink.entries.map { it.action })
+        assertEquals(listOf("shown"), sink.entries.map { it.prefix?.value })
         assertEquals(LogLevel.Info, log.level)
     }
 
@@ -345,13 +345,13 @@ class LoggerTests {
         val sink = MemorySink()
         val settings =
             testSettings().copy(
-                policies = listOf(FilterPolicy { entry -> entry.action != "noisy" && entry.fields.none { it.first == "muted" } }),
+                policies = listOf(FilterPolicy { entry -> entry.prefix?.value != "noisy" && entry.fields.none { it.first == "muted" } }),
             )
         val log = testLogger(settings, sink, "L")
         log.info("noisy")
         log.info("kept")
         log.with("muted" to true).info("hidden")
-        assertEquals(listOf("kept"), sink.entries.map { it.action })
+        assertEquals(listOf("kept"), sink.entries.map { it.prefix?.value })
     }
 
     @Test

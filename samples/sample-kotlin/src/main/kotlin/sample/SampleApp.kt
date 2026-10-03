@@ -4,6 +4,7 @@ import kiit.logs.LogEntry
 import kiit.logs.LogLevel
 import kiit.logs.LogSettings
 import kiit.logs.Logs
+import kiit.logs.Source
 import kiit.logs.policies.FilterPolicy
 import kiit.logs.policies.KeyMatch
 import kiit.logs.policies.Policy
@@ -28,8 +29,8 @@ fun main() {
 
 private fun section(title: String) = println("\n== $title")
 
-// Safe settings log only errors, so the samples turn the level up. origin and scope are stamped on every entry
-private fun settings(level: LogLevel = LogLevel.Debug) = LogSettings.safe(origin = "shop.example.com", scope = "orders").copy(level = level)
+// Safe settings log only errors, so the samples turn the level up. The source is stamped on every entry
+private fun settings(level: LogLevel = LogLevel.Debug) = LogSettings.safe(Source("shop.example.com", "orders")).copy(level = level)
 
 private fun expensive() = 6 * 7
 
@@ -102,7 +103,7 @@ fun redaction() {
 fun policies() {
     section("Policies")
     val build = Policy { it.copy(fields = it.fields + ("build" to "sample-1")) }
-    val noHeartbeat = FilterPolicy { it.action != "heartbeat" }
+    val noHeartbeat = FilterPolicy { it.prefix?.value != "heartbeat" }
     val settings = settings().let { it.copy(policies = it.policies + build + noHeartbeat) }
     val log = Logs.console(settings).logger("Policies")
     log.info("heartbeat")

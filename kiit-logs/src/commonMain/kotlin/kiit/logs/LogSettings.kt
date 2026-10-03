@@ -25,18 +25,15 @@ import kotlin.time.Clock
  * The level, stack trace and policy settings are required, so a logger's behavior is always
  * a deliberate choice. Use [safe] for the safe defaults, and copy() to change one:
  *
- *     LogSettings.safe(origin = "shop.example.com").copy(level = LogLevel.Info)
+ *     LogSettings.safe(Source("shop.example.com")).copy(level = LogLevel.Info)
  *
  * @param level minimum level that is logged
  * @param stackTraces how exceptions are rendered by loggers that print them, e.g. the console
  * @param policies what happens to every entry before a sink gets it, in list order, e.g. redaction and
  *                 filters. [RedactPolicy] is the default, add a [FilterPolicy] after it or your own [Policy]. An
  *                 empty list delivers entries as they are
- * @param origin who owns the system that emits the logs, set once for the app, e.g. "shop.example.com".
- *               A domain or any other stable id. Same convention as origin in kiit-codes and
- *               kiit-service-id. Empty means unset
- * @param scope free-form label for where in the origin this is, e.g. "orders.checkout". Dots express
- *              hierarchy. Same convention as scope in kiit-codes and kiit-service-id. Empty means unset
+ * @param source who owns the system that emits the logs and, as the root scope, where in it this is, e.g.
+ *               Source("shop.example.com", "orders"). Set once for the app. See [Source]
  * @param levels levels for logger names, e.g. "com.shop.orders" to Debug. A logger uses the longest name
  *               that equals its name or is a prefix ending at a dot, otherwise [level]
  * @param maxTraceLines cap on the lines of a full stack trace
@@ -48,8 +45,7 @@ data class LogSettings(
     val level: LogLevel,
     val stackTraces: StackTraces,
     val policies: List<Policy>,
-    val origin: String = "",
-    val scope: String = "",
+    val source: Source = Source.DEFAULT,
     val clock: Clock = Clock.System,
     val maxTraceLines: Int = StackTraces.DEFAULT_MAX_LINES,
     val levels: Map<String, LogLevel> = emptyMap(),
@@ -68,15 +64,14 @@ data class LogSettings(
     companion object {
         /**
          * Safe defaults: only [LogLevel.Error] and above, no stack traces, and default redaction
-         * ( sensitive keys are masked ).
+         * ( sensitive keys are masked ). With no argument the source is [Source.DEFAULT].
          */
-        fun safe(origin: String = "", scope: String = ""): LogSettings =
+        fun safe(source: Source = Source.DEFAULT): LogSettings =
             LogSettings(
                 level = LogLevel.Error,
                 stackTraces = StackTraces.Off,
                 policies = listOf(RedactPolicy()),
-                origin = origin,
-                scope = scope,
+                source = source,
             )
     }
 }

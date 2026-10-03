@@ -38,7 +38,7 @@ class ErrorHandlerTests {
         val record = records.single()
         assertEquals(ErrorHandler.Stage.Sink, record.stage)
         assertEquals("down", record.error.message)
-        assertEquals("place", record.entry?.action)
+        assertEquals("place", record.entry?.prefix?.value)
     }
 
     @Test

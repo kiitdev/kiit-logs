@@ -16,10 +16,11 @@ package kiit.logs.internal
 import kiit.logs.LogEntry
 
 /**
- * Writes an entry to the platform console. The JVM prints "time [name] Level : text".
- * Apple (iOS and macOS) writes "[name] Level : text" with NSLog, which adds its own time and process prefix.
- * Android writes to logcat with the level and the name as the tag, since logcat adds its own time and level.
- * The entry is passed whole, so a platform can use more of it, e.g. the scope or the fields.
+ * Writes an entry to the platform console. The JVM prints "time [origin:scope] Level : text".
+ * Apple (iOS and macOS) writes "[origin:scope] Level : text" with NSLog, which adds its own time and process prefix.
+ * Android writes "[origin:scope] text" to logcat with the level and the name as the tag, since logcat adds its
+ * own time and level.
+ * The entry is passed whole, so a platform can use more of it, e.g. the fields.
  *
  * @param entry the entry being written
  * @param text the display text to write, already built from the entry and its trace

@@ -19,7 +19,7 @@ import kiit.logs.LogSettings
 /**
  * A [Policy] that drops the entries [keep] returns false for, e.g. to silence a noisy action:
  *
- *     FilterPolicy { it.action != "heartbeat" }
+ *     FilterPolicy { it.prefix?.value != "heartbeat" }
  *
  * Put it after [RedactPolicy] in [LogSettings.policies], so it only sees redacted fields.
  */
