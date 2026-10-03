@@ -2,6 +2,7 @@ package kiit.logs.policies
 
 import kiit.logs.LogEntry
 import kiit.logs.LogLevel
+import kiit.logs.data.Action
 import kiit.logs.sinks.MemorySink
 import kiit.logs.testLogger
 import kiit.logs.testSettings
@@ -24,7 +25,7 @@ class PolicyTests {
     @Test
     fun policies_run_in_list_order() {
         val sink = MemorySink()
-        logger(sink, adding("first"), adding("second")).info("x", "call" to 1)
+        logger(sink, adding("first"), adding("second")).info(Action("x", "call" to 1))
         assertEquals(listOf("call", "first", "second"), sink.entries.single().fields.map { it.first })
     }
 
@@ -39,7 +40,7 @@ class PolicyTests {
                 reached = true
                 it
             },
-        ).info("x")
+        ).info(Action("x"))
         assertTrue(sink.entries.isEmpty())
         assertTrue(!reached)
     }
@@ -48,8 +49,8 @@ class PolicyTests {
     fun filter_keeps_what_the_predicate_accepts() {
         val sink = MemorySink()
         val log = logger(sink, FilterPolicy { it.prefix?.value != "noisy" })
-        log.info("noisy")
-        log.info("kept")
+        log.info(Action("noisy"))
+        log.info(Action("kept"))
         assertEquals(listOf("kept"), sink.entries.map { it.prefix?.value })
     }
 
@@ -65,7 +66,7 @@ class PolicyTests {
                 it
             },
         )
-            .info("signup", "email" to "a@b.com", "plan" to "pro")
+            .info(Action("signup", "email" to "a@b.com", "plan" to "pro"))
         assertEquals(listOf<Any?>("***", "pro"), seen)
         assertEquals("***", sink.entries.single().fields.first().second)
     }
@@ -73,7 +74,7 @@ class PolicyTests {
     @Test
     fun without_policies_entries_are_delivered_as_they_are() {
         val sink = MemorySink()
-        logger(sink).info("signup", "password" to "hunter2")
+        logger(sink).info(Action("signup", "password" to "hunter2"))
         assertEquals("hunter2", sink.entries.single().fields.single().second)
     }
 
@@ -98,7 +99,7 @@ class PolicyTests {
                 policies = listOf(Policy { throw IllegalStateException("redaction bug") }),
                 errors = handling(records),
             )
-        testLogger(settings, sink, "L").info("signup", "password" to "hunter2")
+        testLogger(settings, sink, "L").info(Action("signup", "password" to "hunter2"))
         assertTrue(sink.entries.isEmpty())
         assertEquals(ErrorHandler.Stage.Policy, records.single().stage)
         assertNull(records.single().entry)
@@ -112,7 +113,7 @@ class PolicyTests {
                 policies = listOf(RedactPolicy(), Policy { throw IllegalStateException("bug") }),
                 errors = handling(mutableListOf()),
             )
-        testLogger(settings, sink, "L").info("signup", "password" to "hunter2")
+        testLogger(settings, sink, "L").info(Action("signup", "password" to "hunter2"))
         assertTrue(sink.entries.isEmpty())
     }
 }

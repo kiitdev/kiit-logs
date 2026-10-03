@@ -24,7 +24,7 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
  *
  *     val sink = MemorySink()
  *     val logs = Logs(LogSettings.safe().copy(level = LogLevel.Info), sink)
- *     logs.logger("orders").info("place", "order_id" to "abc")
+ *     logs.logger("orders").info(Action("place", "order_id" to "abc"))
  *     assertEquals("place", sink.entries.single().prefix?.value)
  */
 @OptIn(ExperimentalAtomicApi::class)

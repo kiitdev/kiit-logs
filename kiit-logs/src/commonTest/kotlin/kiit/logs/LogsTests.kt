@@ -1,5 +1,6 @@
 package kiit.logs
 
+import kiit.logs.data.Action
 import kiit.logs.sinks.ConsoleSink
 import kiit.logs.sinks.MemorySink
 import kotlin.test.Test
@@ -17,8 +18,8 @@ class LogsTests {
         assertSame(settings, factory.settings)
 
         val log = factory.logger("orders")
-        log.debug("skipped")
-        log.info("place", "order_id" to "abc")
+        log.debug(Action("skipped"))
+        log.info(Action("place", "order_id" to "abc"))
         assertEquals(1, sink.entries.size)
         assertEquals("place", sink.entries[0].prefix?.value)
         assertEquals("orders", sink.entries[0].name)
@@ -54,9 +55,9 @@ class LogsTests {
         val sink = MemorySink()
         val factory = Logs(testSettings(LogLevel.Error), sink)
         val log = factory.logger("orders")
-        log.info("before")
+        log.info(Action("before"))
         factory.setLevel(LogLevel.Info)
-        log.info("after")
+        log.info(Action("after"))
         assertEquals(listOf("after"), sink.entries.map { it.prefix?.value })
     }
 

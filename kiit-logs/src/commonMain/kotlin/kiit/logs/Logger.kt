@@ -23,26 +23,27 @@ import kiit.logs.policies.Policies
 import kiit.logs.sinks.LogSink
 
 /**
- * A logger. Structured logging is the default style, log an action with key/value fields:
+ * A logger. Everything it logs is a [LogData], and the built-in kinds say why it is logged:
  *
- *     info("place", "order_id" to id, "total" to 42)
- *     error("place", ex, "order_id" to id)
+ *     log.info(Action("place_order", "order_id" to id))              // something about to be done
+ *     log.info(Event("order_placed", "order_id" to id, "total" to 42)) // something that has happened
+ *     log.error(Text("charge failed", ex))                           // free text, the others are preferred
  *
- * Fields are built before the level is checked. If they are expensive to build, pass a lambda so
- * they are only built when the level is enabled:
+ * Every level has an eager form and a lazy form. The data is built before the level is checked in the eager form.
+ * If it is expensive to build, pass a lambda, which only runs if the level is enabled:
  *
- *     debug("place") { listOf("total" to expensive()) }
+ *     log.debug { Action("place_order", "total" to expensive()) }
+ *
+ * [log] is the one general method, it takes the level, and the methods named for a level call it:
+ *
+ *     log.log(LogLevel.Warn, Text("payment slow"))
+ *     log.log(LogLevel.Warn) { Text("payment slow ${expensive()}") }
  *
  * Kiit modules use Result<T, E> for errors as values, so an error usually propagates to an edge
  * ( e.g. an API handler ) where it is logged once, with the action and its inputs/outputs.
  *
- * Free text is also supported, with [log]:
- *
- *     log(LogLevel.Error, "payment failed", ex)
- *
  * A logger sends every entry that passes the level check and the [LogSettings.policies] to its [LogSink].
  */
-@Suppress("TooManyFunctions") // one method per level and style for now, to go when the logging API is consolidated
 class Logger private constructor(
     private val state: LogState,
     val name: String,
@@ -91,88 +92,48 @@ class Logger private constructor(
         ErrorGuard.guard(settings.errors, Stage.Lifecycle, null) { sink.flush() }
     }
 
-    // Structured logging: an action with key/value fields ( redacted by the logger's policies )
-    fun verbose(action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Verbose, action, null, fields)
-
-    fun debug(action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Debug, action, null, fields)
-
-    fun info(action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Info, action, null, fields)
-
-    fun warn(action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Warn, action, null, fields)
-
-    fun error(action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Error, action, null, fields)
-
-    fun fatal(action: String, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Fatal, action, null, fields)
-
-    // Structured logging with an exception
-    fun verbose(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Verbose, action, ex, fields)
-
-    fun debug(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Debug, action, ex, fields)
-
-    fun info(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Info, action, ex, fields)
-
-    fun warn(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Warn, action, ex, fields)
-
-    fun error(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Error, action, ex, fields)
-
-    fun fatal(action: String, ex: Throwable?, vararg fields: Pair<String, Any?>) = logAction(LogLevel.Fatal, action, ex, fields)
-
-    // Structured logging, lazy: fields are only built if the level is enabled
-    fun verbose(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) =
-        logIfEnabled(LogLevel.Verbose, action, ex, fields)
-
-    fun debug(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) =
-        logIfEnabled(LogLevel.Debug, action, ex, fields)
-
-    fun info(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) =
-        logIfEnabled(LogLevel.Info, action, ex, fields)
-
-    fun warn(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) =
-        logIfEnabled(LogLevel.Warn, action, ex, fields)
-
-    fun error(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) =
-        logIfEnabled(LogLevel.Error, action, ex, fields)
-
-    fun fatal(action: String, ex: Throwable? = null, fields: () -> List<Pair<String, Any?>>) =
-        logIfEnabled(LogLevel.Fatal, action, ex, fields)
-
     /**
-     * Logs an action at any level
-     */
-    fun logAction(
-        level: LogLevel,
-        action: String,
-        ex: Throwable?,
-        fields: Array<out Pair<String, Any?>>
-    ) {
-        logIfEnabled(level, null, fields.asList(), ex, action)
-    }
-
-    // Free text
-
-    /**
-     * Logs a message. If there is an exception, its message is appended after a colon:
+     * Logs at any level. The data is built before the level is checked, see the lambda form for data that is
+     * expensive to build. An exception in the data has its message added to the message after a colon:
      * "payment failed: card declined".
-     * @param level
-     * @param msg
-     * @param ex
      */
-    fun log(level: LogLevel, msg: String?, ex: Throwable? = null) {
-        send(level) { s -> build(s, level, textWith(msg, ex), ex, null, emptyList()) }
+    fun log(level: LogLevel, data: LogData) {
+        send(level) { s -> build(s, level, data) }
     }
 
     /**
-     * Logs a message that is only built if the level is enabled, with an exception if there is one. The
-     * exception's message is appended, as in the other [log]:
+     * Logs at any level, with data that is only built if the level is enabled:
      *
-     *     log(LogLevel.Debug) { "cache ${expensive()}" }
-     *     log(LogLevel.Error, ex) { "charge ${expensive()}" }
-     *
-     * Details that should be searchable are better as fields, see [debug] with a lambda of fields.
+     *     log(LogLevel.Debug) { Text("cache ${expensive()}") }
      */
-    fun log(level: LogLevel, ex: Throwable? = null, callback: () -> String) {
-        send(level) { s -> build(s, level, textWith(callback(), ex), ex, null, emptyList()) }
+    fun log(level: LogLevel, data: () -> LogData) {
+        send(level) { s -> build(s, level, data()) }
     }
+
+    // One method per level, each for the data and for a lambda that makes it
+    fun verbose(data: LogData) = log(LogLevel.Verbose, data)
+
+    fun verbose(data: () -> LogData) = log(LogLevel.Verbose, data)
+
+    fun debug(data: LogData) = log(LogLevel.Debug, data)
+
+    fun debug(data: () -> LogData) = log(LogLevel.Debug, data)
+
+    fun info(data: LogData) = log(LogLevel.Info, data)
+
+    fun info(data: () -> LogData) = log(LogLevel.Info, data)
+
+    fun warn(data: LogData) = log(LogLevel.Warn, data)
+
+    fun warn(data: () -> LogData) = log(LogLevel.Warn, data)
+
+    fun error(data: LogData) = log(LogLevel.Error, data)
+
+    fun error(data: () -> LogData) = log(LogLevel.Error, data)
+
+    fun fatal(data: LogData) = log(LogLevel.Fatal, data)
+
+    fun fatal(data: () -> LogData) = log(LogLevel.Fatal, data)
 
     // The message, then the exception's message after a colon when there is one: "payment failed: card declined"
     private fun textWith(msg: String?, ex: Throwable?): String =
@@ -183,36 +144,10 @@ class Logger private constructor(
         } ?: ""
 
     /**
-     * Logs an entry with key/value fields. Fields are redacted by the [LogSettings.policies] before
-     * the entry is delivered.
-     */
-    private fun logIfEnabled(
-        level: LogLevel,
-        msg: String?,
-        fields: List<Pair<String, Any?>>,
-        ex: Throwable? = null,
-        action: String? = null
-    ) {
-        send(level) { s -> build(s, level, msg ?: ex?.message ?: "", ex, action, fields) }
-    }
-
-    /**
-     * Logs an action. The fields are only built if the level is enabled.
-     */
-    private fun logIfEnabled(
-        level: LogLevel,
-        action: String,
-        ex: Throwable?,
-        fields: () -> List<Pair<String, Any?>>
-    ) {
-        send(level) { s -> build(s, level, ex?.message ?: "", ex, action, fields()) }
-    }
-
-    /**
      * A logger that adds these fields to every entry it logs, e.g. an id for one request:
      *
      *     val log = logger.with("trace_id" to traceId)
-     *     log.info("place", "order_id" to id)   // fields: trace_id, order_id
+     *     log.info(Action("place_order", "order_id" to id))   // fields: trace_id, order_id
      *
      * It shares this logger's settings, so a level change applies to it too. The fields go through the policies
      * like any others.
@@ -236,24 +171,17 @@ class Logger private constructor(
         ErrorGuard.guard(s.errors, Stage.Sink, delivered) { sink.emit(delivered) }
     }
 
-    // The parts of one entry, plus the settings snapshot it is stamped from
-    @Suppress("LongParameterList")
-    private fun build(
-        s: LogSettings,
-        level: LogLevel,
-        msg: String,
-        ex: Throwable?,
-        action: String?,
-        fields: List<Pair<String, Any?>>
-    ): LogEntry {
+    // One entry from the data, plus the settings snapshot it is stamped from
+    private fun build(s: LogSettings, level: LogLevel, data: LogData): LogEntry {
+        val ex = data.ex
         return LogEntry(
             name = name,
             level = level,
-            msg = msg,
+            msg = textWith(data.msg, ex),
             ex = ex,
-            prefix = action?.let { Prefix("ACTION", it) },
+            prefix = data.prefix,
             source = s.source,
-            fields = bound + fields,
+            fields = bound + data.fields,
             time = s.clock.now(),
             trace = ex?.let { StackTraceBuilder.render(s.stackTraces, it, s.maxTraceLines) },
             thread = currentThreadName(),
