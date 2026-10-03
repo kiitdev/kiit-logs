@@ -64,9 +64,11 @@ class Logs(
         current.update { settings ->
             val levels =
                 if (level == null) {
-                    settings.levels - name // a copy of the map without this name
+                    // a copy of the map without this name
+                    settings.levels - name
                 } else {
-                    settings.levels + (name to level) // a copy with this name added, or replaced
+                    // a copy with this name added, or replaced
+                    settings.levels + (name to level)
                 }
             settings.copy(levels = levels)
         }
