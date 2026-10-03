@@ -1,5 +1,6 @@
 package kiit.logs
 
+import kiit.logs.sinks.MemorySink
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

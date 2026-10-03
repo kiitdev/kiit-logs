@@ -5,24 +5,6 @@ import kiit.logs.sinks.LogSink
 import kotlin.time.Clock
 import kotlin.time.Instant
 
-class MemorySink : LogSink {
-    val entries = mutableListOf<LogEntry>()
-    var flushed = 0
-    var closed = 0
-
-    override fun emit(entry: LogEntry) {
-        entries.add(entry)
-    }
-
-    override fun flush() {
-        flushed++
-    }
-
-    override fun close() {
-        closed++
-    }
-}
-
 class FailingSink(private val message: String = "sink down") : LogSink {
     override fun emit(entry: LogEntry) = throw IllegalStateException(message)
 

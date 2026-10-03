@@ -1,20 +1,12 @@
 package kiit.logs
 
-import kiit.logs.sinks.LogSink
+import kiit.logs.sinks.MemorySink
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ConcurrencyTests {
-    private class SafeSink : LogSink {
-        val entries: MutableList<LogEntry> = Collections.synchronizedList(mutableListOf())
-
-        override fun emit(entry: LogEntry) {
-            entries.add(entry)
-        }
-    }
-
     private fun runThreads(count: Int, body: (Int) -> Unit) {
         val failures = Collections.synchronizedList(mutableListOf<Throwable>())
         val threads =
@@ -34,7 +26,7 @@ class ConcurrencyTests {
 
     @Test
     fun the_factory_makes_one_logger_per_name_when_threads_race() {
-        val factory = Logs(testSettings(), SafeSink())
+        val factory = Logs(testSettings(), MemorySink())
         val seen = ConcurrentHashMap<String, MutableSet<Logger>>()
         runThreads(8) {
             repeat(500) { i ->
@@ -49,15 +41,28 @@ class ConcurrencyTests {
 
     @Test
     fun every_entry_arrives_when_many_threads_log() {
-        val sink = SafeSink()
+        val sink = MemorySink()
         val log = testLogger(testSettings(), sink, "L")
         runThreads(8) { n -> repeat(250) { log.info("place", "thread" to n) } }
         assertEquals(2000, sink.entries.size)
     }
 
     @Test
+    fun each_threads_entries_keep_their_order_in_a_memory_sink() {
+        val sink = MemorySink()
+        val log = testLogger(testSettings(), sink, "L")
+        runThreads(8) { n -> repeat(250) { i -> log.info("place", "thread" to n, "i" to i) } }
+        val byThread = sink.entries.groupBy { e -> e.fields.first { it.first == "thread" }.second }
+        assertEquals(8, byThread.size)
+        byThread.values.forEach {
+                list ->
+            assertEquals((0 until 250).toList(), list.map { e -> e.fields.first { it.first == "i" }.second })
+        }
+    }
+
+    @Test
     fun a_level_change_while_threads_log_does_not_fail() {
-        val sink = SafeSink()
+        val sink = MemorySink()
         val factory = Logs(testSettings(), sink)
         val log = factory.logger("L")
         runThreads(6) { n ->
@@ -70,7 +75,7 @@ class ConcurrencyTests {
 
     @Test
     fun level_changes_by_name_from_many_threads_are_all_kept() {
-        val factory = Logs(testSettings(LogLevel.Error), SafeSink())
+        val factory = Logs(testSettings(LogLevel.Error), MemorySink())
         val names = (0 until 8).flatMap { n -> (0 until 100).map { i -> "t$n.n$i" } }
         // Loggers that exist before the changes
         names.forEach { factory.logger(it) }

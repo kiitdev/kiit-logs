@@ -3,7 +3,6 @@ package kiit.logs.sinks
 import kiit.logs.FailingSink
 import kiit.logs.LogEntry
 import kiit.logs.LogLevel
-import kiit.logs.MemorySink
 import kiit.logs.fixedTime
 import kotlin.test.Test
 import kotlin.test.assertEquals

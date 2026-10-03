@@ -2,7 +2,7 @@ package kiit.logs.policies
 
 import kiit.logs.LogEntry
 import kiit.logs.LogLevel
-import kiit.logs.MemorySink
+import kiit.logs.sinks.MemorySink
 import kiit.logs.testLogger
 import kiit.logs.testSettings
 import kotlin.test.Test
