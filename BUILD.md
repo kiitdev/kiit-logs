@@ -21,11 +21,15 @@ All Gradle commands below are run from the **repository root**.
 ./gradlew :kiit-logs:macosArm64Test        # macOS, Apple silicon only (macosX64Test on Intel)
 ./gradlew :kiit-logs:ktlintCheck :kiit-logs:detekt
 
-# Run the Kotlin sample app
+# Build and run the Kotlin sample app
+./gradlew :samples:sample-kotlin:build
 ./gradlew :samples:sample-kotlin:run
 ```
 
 `ktlintFormat` fixes most formatting problems: `./gradlew :kiit-logs:ktlintFormat`.
+
+CI runs ktlint, detekt, the JVM and Android tests and the sample build on Linux. On macOS it runs the iOS
+simulator and macOS tests, then `publishToMavenLocal` as a packaging check.
 
 ## Publish to Maven local
 

@@ -31,6 +31,14 @@ jobs:
       - name: JVM tests (commonTest)
         run: ./gradlew :kiit-logs:jvmTest
 
+      # Runs commonTest on Android, on the JVM. The ubuntu runner has the Android SDK.
+      - name: Android unit tests (commonTest)
+        run: ./gradlew :kiit-logs:testDebugUnitTest
+
+      # Compiles the sample against the library, so an API change can't break it unnoticed.
+      - name: Sample build
+        run: ./gradlew :samples:sample-kotlin:build
+
   apple-checks:
     runs-on: macos-latest
     steps:
@@ -49,3 +57,8 @@ jobs:
 
       - name: macOS tests (commonTest)
         run: ./gradlew :kiit-logs:macosArm64Test
+
+      # macOS is the only runner that builds the Apple publications, so this packages every
+      # target. Signing is skipped for Maven local, no key is needed.
+      - name: Package check (publishToMavenLocal)
+        run: ./gradlew :kiit-logs:publishToMavenLocal
