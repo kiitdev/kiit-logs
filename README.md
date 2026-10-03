@@ -140,7 +140,7 @@ payments.error(Action("charge", "order_id" to "abc", ex = IllegalStateException(
 IllegalStateException: card declined
 ```
 
-With no `msg`, the exception's message is used as the `msg`. With both, the exception's message goes after the `msg` and a colon.
+The entry keeps `msg` and the exception apart, so a sink gets both as they were given. The console line adds the exception's message: with no `msg` it prints `msg="card declined"`, and with both it prints `msg="low stock: card declined"`.
 
 **Build expensive data lazily.** The lambda only runs if the level is enabled:
 

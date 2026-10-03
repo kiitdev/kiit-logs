@@ -42,30 +42,36 @@ class LoggerTests {
     }
 
     @Test
-    fun structured_entry_with_an_exception_uses_its_message_and_keeps_it() {
+    fun structured_entry_with_an_exception_keeps_it_apart_from_the_msg() {
         val sink = MemorySink()
         val ex = IllegalStateException("card declined")
         testLogger(testSettings(), sink, "Payments").error(Action("charge", "order_id" to "abc", ex = ex))
 
         val entry = sink.entries.single()
-        assertEquals("card declined", entry.msg)
+        assertEquals("", entry.msg)
         assertEquals(ex, entry.ex)
         assertEquals(fields("order_id" to "abc"), entry.fields)
+        assertEquals("ACTION: charge, msg=\"card declined\", order_id=abc, logger=Payments", entry.text)
     }
 
     @Test
-    fun free_text_appends_the_exception_message() {
+    fun free_text_keeps_the_exception_apart_and_the_text_adds_its_message() {
         val sink = MemorySink()
         val log = testLogger(testSettings(), sink, "L")
         log.log(LogLevel.Info, Text("error check", IllegalStateException("testing exception message")))
-        assertEquals("error check: testing exception message", sink.entries.single().msg)
+        val entry = sink.entries.single()
+        assertEquals("error check", entry.msg)
+        assertEquals("testing exception message", entry.ex?.message)
+        assertEquals("error check: testing exception message, logger=L", entry.text)
     }
 
     @Test
-    fun free_text_with_only_an_exception_uses_its_message() {
+    fun free_text_with_only_an_exception_has_no_msg_and_the_text_uses_its_message() {
         val sink = MemorySink()
         testLogger(testSettings(), sink, "L").log(LogLevel.Info, Text("", IllegalStateException("testing exception message")))
-        assertEquals("testing exception message", sink.entries.single().msg)
+        val entry = sink.entries.single()
+        assertEquals("", entry.msg)
+        assertEquals("testing exception message, logger=L", entry.text)
     }
 
     @Test
@@ -184,14 +190,15 @@ class LoggerTests {
     }
 
     @Test
-    fun a_lazy_message_with_an_exception_appends_its_message_and_keeps_the_exception() {
+    fun a_lazy_message_with_an_exception_keeps_both_and_the_text_adds_the_exception_message() {
         val sink = MemorySink()
         val ex = IllegalStateException("boom")
         val log = testLogger(testSettings(LogLevel.Info), sink, "L")
         log.log(LogLevel.Error) { Text("charge failed", ex) }
         log.log(LogLevel.Error) { Text("", ex) }
         log.log(LogLevel.Error) { Text("no exception") }
-        assertEquals(listOf("charge failed: boom", "boom", "no exception"), sink.entries.map { it.msg })
+        assertEquals(listOf("charge failed", "", "no exception"), sink.entries.map { it.msg })
+        assertEquals(listOf("charge failed: boom, logger=L", "boom, logger=L", "no exception, logger=L"), sink.entries.map { it.text })
         assertEquals(listOf<Throwable?>(ex, ex, null), sink.entries.map { it.ex })
     }
 
@@ -215,6 +222,7 @@ class LoggerTests {
         log.log(LogLevel.Error, Text("charge failed", ex))
         log.log(LogLevel.Error) { Text("charge failed", ex) }
         assertEquals(sink.entries[0].msg, sink.entries[1].msg)
+        assertEquals(sink.entries[0].text, sink.entries[1].text)
     }
 
     @Test
@@ -271,8 +279,9 @@ class LoggerTests {
         testLogger(testSettings(), sink, "L").error { Action("charge", "a" to 1, ex = ex) }
         val entry = sink.entries.single()
         assertEquals(ex, entry.ex)
-        assertEquals("boom", entry.msg)
+        assertEquals("", entry.msg)
         assertEquals(fields("a" to 1), entry.fields)
+        assertEquals("ACTION: charge, msg=\"boom\", a=1, logger=L", entry.text)
     }
 
     @Test
@@ -401,13 +410,13 @@ class LoggerTests {
     }
 
     @Test
-    fun an_action_with_a_msg_and_an_exception_has_both_in_the_msg() {
+    fun an_action_with_a_msg_and_an_exception_keeps_them_apart() {
         val sink = MemorySink()
         val ex = IllegalStateException("boom")
         testLogger(testSettings(), sink, "L").warn(Action("place_order", msg = "low stock", ex = ex))
         val entry = sink.entries.single()
         assertEquals(Prefix("ACTION", "place_order"), entry.prefix)
-        assertEquals("low stock: boom", entry.msg)
+        assertEquals("low stock", entry.msg)
         assertEquals(ex, entry.ex)
         assertEquals("ACTION: place_order, msg=\"low stock: boom\", logger=L", entry.text)
     }

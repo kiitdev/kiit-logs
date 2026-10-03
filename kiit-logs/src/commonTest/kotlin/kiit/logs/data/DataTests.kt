@@ -25,6 +25,32 @@ class DataTests {
     }
 
     @Test
+    fun the_labels_of_action_and_event_are_the_prefix_constants() {
+        assertEquals("ACTION", Prefix.ACTION)
+        assertEquals("EVENT", Prefix.EVENT)
+        assertEquals(Prefix.ACTION, Action("place_order").prefix.label)
+        assertEquals(Prefix.EVENT, Event("order_placed").prefix.label)
+    }
+
+    @Test
+    fun a_sink_can_tell_an_action_from_an_event_and_from_a_custom_label() {
+        val job =
+            object : LogData {
+                override val prefix = Prefix("JOB", "nightly")
+            }
+        val kinds =
+            listOf(Action("a"), Event("e"), job, Text("t")).map {
+                when (it.prefix?.label) {
+                    Prefix.ACTION -> "action"
+                    Prefix.EVENT -> "event"
+                    null -> "none"
+                    else -> "other"
+                }
+            }
+        assertEquals(listOf("action", "event", "other", "none"), kinds)
+    }
+
+    @Test
     fun action_and_event_take_a_msg_and_an_exception_by_name() {
         val ex = IllegalStateException("boom")
         val action = Action("place_order", "order_id" to "abc", msg = "low stock", ex = ex)

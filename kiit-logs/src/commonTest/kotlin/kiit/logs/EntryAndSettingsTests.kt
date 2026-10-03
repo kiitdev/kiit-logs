@@ -13,8 +13,17 @@ class EntryAndSettingsTests {
         msg: String = "",
         prefix: Prefix? = null,
         name: String = "L",
-        fields: List<Pair<String, Any?>> = emptyList()
-    ) = LogEntry(name = name, level = LogLevel.Info, msg = msg, prefix = prefix, source = Source("shop", "orders"), fields = fields)
+        fields: List<Pair<String, Any?>> = emptyList(),
+        ex: Throwable? = null
+    ) = LogEntry(
+        name = name,
+        level = LogLevel.Info,
+        msg = msg,
+        ex = ex,
+        prefix = prefix,
+        source = Source("shop", "orders"),
+        fields = fields,
+    )
 
     private val action = Prefix("ACTION", "place_order")
 
@@ -45,6 +54,26 @@ class EntryAndSettingsTests {
             "ACTION: place_order, msg=\"low stock\", order_id=abc, logger=L",
             entry(msg = "low stock", prefix = action, fields = fields("order_id" to "abc")).text,
         )
+    }
+
+    @Test
+    fun text_adds_the_exception_message_after_the_msg_and_the_entry_keeps_them_apart() {
+        val ex = IllegalStateException("card declined")
+        val failed = entry(msg = "payment failed", ex = ex)
+        assertEquals("payment failed", failed.msg)
+        assertEquals("payment failed: card declined, logger=L", failed.text)
+        assertEquals("card declined, logger=L", entry(ex = ex).text)
+        assertEquals(
+            "ACTION: place_order, msg=\"low stock: card declined\", logger=L",
+            entry(msg = "low stock", prefix = action, ex = ex).text,
+        )
+    }
+
+    @Test
+    fun an_exception_without_a_message_adds_nothing_to_the_text() {
+        val ex = IllegalStateException()
+        assertEquals("payment failed, logger=L", entry(msg = "payment failed", ex = ex).text)
+        assertEquals("logger=L", entry(ex = ex).text)
     }
 
     @Test
